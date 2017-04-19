@@ -10,6 +10,8 @@ CLASSPATH="${CLASSES_DIR}:${LIB_DIR}/*"
 
 APP_CLASS="com.obliquity.mailtool.ListFolders"
 
-java ${JAVA_OPTS} -Djava.awt.headless=true -D"mail.imap.ssl.trust=*" \
-    -classpath "${CLASSPATH}" ${APP_CLASS} \
-    "$@"
+# You may need to set -Dmail.imap.ssl.trust=* if your IMAP server
+# does not have a valid certificate.  Only do this if you REALLY
+# trust the identity of the server!
+
+java ${JAVA_OPTS} -Djava.awt.headless=true -classpath "${CLASSPATH}" ${APP_CLASS} "$@"
