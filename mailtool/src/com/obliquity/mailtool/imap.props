@@ -1,0 +1,2 @@
+mail.imap.auth.plain.disable=false
+mail.imaps.auth.plain.disable=true
