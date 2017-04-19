@@ -26,6 +26,7 @@ package com.obliquity.mailtool;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Date;
 
 import javax.mail.*;
 import javax.mail.event.*;
@@ -72,6 +73,8 @@ public class FolderMonitor extends AbstractMailClient {
 				public void messagesAdded(MessageCountEvent event) {
 					Message[] messages = event.getMessages();
 
+					showDate();
+					
 					System.out.println("Got " + messages.length
 							+ " new messages");
 
@@ -88,6 +91,8 @@ public class FolderMonitor extends AbstractMailClient {
 				public void messagesRemoved(MessageCountEvent event) {
 					Message[] messages = event.getMessages();
 
+					showDate();
+					
 					System.out.println("Removed " + messages.length
 							+ " messages, isRemoved returns "
 							+ event.isRemoved());
@@ -111,6 +116,8 @@ public class FolderMonitor extends AbstractMailClient {
 				public void messageChanged(MessageChangedEvent event) {
 					Message message = event.getMessage();
 
+					showDate();
+					
 					System.out
 							.println("Flags changed on this message (change type = "
 									+ event.getMessageChangeType() + "):");
@@ -126,17 +133,22 @@ public class FolderMonitor extends AbstractMailClient {
 		
 		folder.addFolderListener(new FolderAdapter() {
 			public void folderCreated(FolderEvent event) {
+				showDate();
 				System.out.println("Folder created: " + event.getFolder().getName());
 			}
 			
 			public void folderRenamed(FolderEvent event) {
+				showDate();
 				System.out.println("Folder renamed: " + event.getFolder().getName() + " became " + event.getNewFolder().getName());
 			}
 			
 			public void folderDeleted(FolderEvent event) {
+				showDate();
 				System.out.println("Folder deleted: " + event.getFolder().getName());
 			}
 		});
+		
+		System.out.println("Watching folder " + folder.getFullName());
 
 		while (true) {
 			int type = folder.getType();
@@ -157,5 +169,10 @@ public class FolderMonitor extends AbstractMailClient {
 		    if (containsFolders)
 		    	folder.list();
 		}
+	}
+	
+	private void showDate() {
+		Date now = new Date();
+		System.out.println("\n\n***** TIMESTAMP: " + now + " *****\n");
 	}
 }
