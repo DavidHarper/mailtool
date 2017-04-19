@@ -1,2 +1,3 @@
 mail.imap.auth.plain.disable=false
+mail.imap.ssl.enable=true
 mail.imaps.auth.plain.disable=true
