@@ -1,13 +1,16 @@
 package com.obliquity.mailtool;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.PrintStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Properties;
 
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Flags;
 import javax.mail.Flags.Flag;
+import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
@@ -17,87 +20,89 @@ import javax.mail.Store;
 import javax.mail.internet.MimeMessage;
 
 public abstract class AbstractMailClient {
-	private static final String DEFAULT_PROTOCOL = "imaps";
-
-	private Store store;
+	private Folder mainFolder = null;
 	
-	public AbstractMailClient(String user, String host, int port, String protocol) throws MessagingException {
-		if (protocol == null)
-			protocol = DEFAULT_PROTOCOL;
+	public AbstractMailClient(String folderURI) throws URISyntaxException, MessagingException {
+		mainFolder = connectToFolder(folderURI);
+	}
 		
-		Properties props = new Properties();
-
-		InputStream is = getClass().getResourceAsStream("imap.props");
-
-		if (is != null) {
-			try {
-				props.load(is);
-				is.close();
-			} catch (IOException ioe) {
-				ioe.printStackTrace();
-			}
-		}
-		
-		String trustedHosts = System.getProperty("trustedhosts");
-		
-		if (trustedHosts != null) {
-			props.put("mail." + protocol + ".ssl.trust", trustedHosts);
-			System.err.println("Trusting hosts: " + trustedHosts);
-		}
-		
-		props.put("mail." + protocol + ".host", host);		
-		props.put("mail." + protocol + ".user", user);
-		
-		if (port > 0)
-			props.put("mail." + protocol + ".port", port);
-		String username = props.getProperty("mail." + protocol + ".user");
-
-		Authenticator auth = new SimpleAuthenticator(username);
-
-		Session session = Session.getInstance(props, auth);
-		
-		boolean debug = Boolean.getBoolean("debug");
-		
-		session.setDebug(debug);
-
-		store = session.getStore(protocol);
-
-		store.connect();
+	protected Folder getMainFolder() {
+		return mainFolder;
 	}
 	
 	protected Store getStore() {
-		return store;
+		return mainFolder.getStore();
 	}
+	
+	protected Folder connectToFolder(String folderURI)
+			throws URISyntaxException, MessagingException {
+		URI uri = new URI(folderURI);
 
-	protected void displayMessage(Message message) throws MessagingException, IOException {
+		String scheme = uri.getScheme();
+		String user = uri.getUserInfo();
+		String host = uri.getHost();
+		int port = uri.getPort();
+		String path = uri.getPath();
+
+		if (path.startsWith("/"))
+			path = path.substring(1);
+
+		Properties props = new Properties();
+
+		props.put("mail." + scheme + ".host", host);
+		props.put("mail." + scheme + ".user", user);
+
+		if (port > 0)
+			props.put("mail." + scheme + ".port", port);
+
+		Authenticator auth = new SimpleAuthenticator(user);
+
+		Session session = Session.getInstance(props, auth);
+
+		boolean debug = Boolean.getBoolean("debug");
+
+		session.setDebug(debug);
+
+		Store store = session.getStore(scheme);
+
+		store.connect();
+		
+		return path.length() > 0 ? store.getFolder(path) : store.getDefaultFolder();
+	}
+	
+	protected void displayMessageHeaders(Message message, PrintStream ps) throws MessagingException {
 		Address[] to = message.getRecipients(Message.RecipientType.TO);
 		
-		System.out.println("From:    " + message.getFrom()[0]);
+		ps.println("From:    " + message.getFrom()[0]);
 		
 		if (to != null) {
-			System.out.print("To:      ");
+			ps.print("To:      ");
 			for (int i = 0; i < to.length; i++) {
 				if (i > 0)
-					System.out.print(", ");
-				System.out.print(to[i]);
+					ps.print(", ");
+				ps.print(to[i]);
 			}
-			System.out.println();
+			ps.println();
 		}
 		
-		System.out.println("Date:    " + message.getSentDate());
+		ps.println("Date:    " + message.getSentDate());
 		
-		System.out.println("Subject: " + message.getSubject());
+		ps.println("Subject: " + message.getSubject());		
+	}
+
+	protected void displayMessage(Message message, PrintStream ps) throws MessagingException, IOException {
+		displayMessageHeaders(message, ps);
 		
 		String flags = flagsToString(message);
 
 		if (flags != null)
-			System.out.println("Flags:   " + flags);
+			ps.println("Flags:   " + flags);
 		
 		if (message instanceof MimeMessage) {
 			MimeMessage msg = (MimeMessage)message;
 			
 			int messageSize = msg.getSize();
-			System.out.println("Size:    " + messageSize);
+			ps.println("Size:    " + messageSize);
 
 			Object content = message.getContent();
 			
@@ -105,17 +110,17 @@ public abstract class AbstractMailClient {
 				Multipart mp = (Multipart)content;
 				
 				int parts = mp.getCount();
-					System.out.println("Parts:   " + parts);
+					ps.println("Parts:   " + parts);
 				
 				for (int j = 0; j < parts; j++) {
 					Part part = mp.getBodyPart(j);
-					System.out.println("\tPart " + j + ": Content-Type=" + part.getContentType() + "; Length=" + part.getSize());
+					ps.println("\tPart " + j + ": Content-Type=" + part.getContentType() + "; Length=" + part.getSize());
 				}
 
 			}
 		}
 		
-		System.out.println();
+		ps.println();
 	}
 	
 	protected String flagsToString(Message message) throws MessagingException {

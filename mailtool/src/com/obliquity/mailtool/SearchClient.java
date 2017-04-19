@@ -2,6 +2,7 @@ package com.obliquity.mailtool;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -30,11 +31,8 @@ import javax.mail.search.SizeTerm;
 
 public class SearchClient extends AbstractMailClient {
 	public static void main(String[] args) {
-		String protocol = "imap";
-		String host = null;
-		String user = null;
-		int port = 0;
-		String folder = null;
+		String folderURI = null;
+		String folderList = null;
 		String sender = null;
 		String senderLike = null;
 		String recipient = null;
@@ -51,18 +49,10 @@ public class SearchClient extends AbstractMailClient {
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 		
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equalsIgnoreCase("-imap"))
-				protocol = "imap";
-			else if (args[i].equalsIgnoreCase("-imaps"))
-				protocol = "imaps";
-			else if (args[i].equalsIgnoreCase("-host"))
-				host = args[++i];
-			else if (args[i].equalsIgnoreCase("-user"))
-				user = args[++i];
-			else if (args[i].equalsIgnoreCase("-port"))
-				port = Integer.parseInt(args[++i]);
-			else if (args[i].equalsIgnoreCase("-folder"))
-				folder = args[++i];
+			if (args[i].equalsIgnoreCase("-uri"))
+				folderURI = args[++i];
+			else if (args[i].equalsIgnoreCase("-folders"))
+				folderList = args[++i];
 			else if (args[i].equalsIgnoreCase("-sender"))
 				sender = args[++i];
 			else if (args[i].equalsIgnoreCase("-senderlike"))
@@ -130,7 +120,7 @@ public class SearchClient extends AbstractMailClient {
 			}
 		}
 		
-		if (user == null || host == null) {
+		if (folderURI == null) {
 			printUsage(System.err, "A mandatory argument is missing");
 			System.exit(1);
 		}
@@ -178,10 +168,10 @@ public class SearchClient extends AbstractMailClient {
 		}
 			
 		try {
-			SearchClient client = new SearchClient(user, host, port, protocol);
+			SearchClient client = new SearchClient(folderURI);
 			
-			client.run(folder, term, recursive, quiet, purge);
-		} catch (MessagingException e) {
+			client.run(folderList, term, recursive, quiet, purge);
+		} catch (MessagingException | URISyntaxException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -189,16 +179,10 @@ public class SearchClient extends AbstractMailClient {
 	
 	private static String HELP_TEXT[] = {
 		"MANDATORY ARGUMENTS",
-		"\t-host\t\tThe name of the IMAP server",
-		"\t-user\t\tThe name of the IMAP user",
+		"\t-uri\t\tThe URI of the IMAP server",
 		"",
 		"OPTIONAL ARGUMENTS",
-		"\t-port\t\tThe port number of the IMAP server",
-		"",
-		"\t-imap\t\t[BOOLEAN] Use a non-secure connection",
-		"\t-imaps\t\t[BOOLEAN] Use a secure connection",
-		"",
-		"\t-folder\t\tComma-separated list of the folders to be searched",
+		"\t-folders\t\tComma-separated list of the folders to be searched",
 		"\t-recursive\t[BOOLEAN] Search all sub-folders recursively",
 		"",
 		"\t-quiet\t\tDisplay only a summary of the messages",
@@ -236,8 +220,8 @@ public class SearchClient extends AbstractMailClient {
 			ps.println(HELP_TEXT[i]);
 	}
 
-	public SearchClient(String user, String host, int port, String protocol) throws MessagingException {
-		super(user, host, port, protocol);
+	public SearchClient(String folderURI) throws MessagingException, URISyntaxException {
+		super(folderURI);
 	}
 	
 	private static SearchTerm addSenderTerm(SearchTerm term, String sender) {
@@ -384,7 +368,7 @@ public class SearchClient extends AbstractMailClient {
 					counter++;
 				} else {
 					System.out.println("Message " + i + ":");
-					displayMessage(messages[i]);
+					displayMessage(messages[i], System.out);
 				}
 				
 				if (purge)

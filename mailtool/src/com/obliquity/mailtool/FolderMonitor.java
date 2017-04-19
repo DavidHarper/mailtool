@@ -1,6 +1,7 @@
 package com.obliquity.mailtool;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.mail.*;
 import javax.mail.event.*;
@@ -8,58 +9,30 @@ import javax.mail.event.*;
 public class FolderMonitor extends AbstractMailClient {
 	private static final long SLEEP_TIME = 5000;
 
-	public FolderMonitor(String user, String host, int port, String protocol) throws MessagingException {
-		super(user, host, port, protocol);
+	public FolderMonitor(String folderURI) throws MessagingException, URISyntaxException {
+		super(folderURI);
 	}
 	
 	public static void main(String[] args) {
-		String protocol = "imap";
-		String host = null;
-		String user = null;
-		int port = 0;
-		String folder = null;
-		
-		for (int i = 0; i < args.length; i++) {
-			if (args[i].equalsIgnoreCase("-imap"))
-				protocol = "imap";
-			else if (args[i].equalsIgnoreCase("-imaps"))
-				protocol = "imaps";
-			else if (args[i].equalsIgnoreCase("-host"))
-				host = args[++i];
-			else if (args[i].equalsIgnoreCase("-user"))
-				user = args[++i];
-			else if (args[i].equalsIgnoreCase("-port"))
-				port = Integer.parseInt(args[++i]);
-			else if (args[i].equalsIgnoreCase("-folder"))
-				folder = args[++i];
-		}
-		
-		if (user == null || host == null || folder == null) {
-			System.err.println("You must specify -user, -host and -folder");
-			System.exit(1);
-		}
+		String folderURI = args[0];
 		
 		FolderMonitor monitor = null;
 		
 		try {
-			monitor = new FolderMonitor(user, host, port, protocol);
-		} catch (MessagingException e) {
+			monitor = new FolderMonitor(folderURI);
+		} catch (MessagingException | URISyntaxException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 		
-		monitor.run(folder);
+		monitor.run();
 	}
 
-	private void run(String folderName) {
+	private void run() {
 		try {
-			Store store = getStore();
+			monitorFolder(getMainFolder());
 
-			Folder folder = store.getFolder(folderName);
-
-			monitorFolder(folder);
-
-			store.close();
+			getStore().close();
 		} catch (MessagingException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -81,7 +54,7 @@ public class FolderMonitor extends AbstractMailClient {
 					for (int i = 0; i < messages.length; i++) {
 						System.out.println("Message " + i + ":");
 						try {
-							displayMessage(messages[i]);
+							displayMessage(messages[i], System.out);
 						} catch (MessagingException | IOException e) {
 							e.printStackTrace();
 						}
@@ -101,7 +74,7 @@ public class FolderMonitor extends AbstractMailClient {
 							if (messages[i].isExpunged())
 								System.out.println("*** EXPUNGED ***");
 							else
-								displayMessage(messages[i]);
+								displayMessage(messages[i], System.out);
 						} catch (MessagingException | IOException e) {
 							e.printStackTrace();
 						}
@@ -119,7 +92,7 @@ public class FolderMonitor extends AbstractMailClient {
 									+ event.getMessageChangeType() + "):");
 
 					try {
-						displayMessage(message);
+						displayMessage(message, System.out);
 					} catch (MessagingException | IOException e) {
 						e.printStackTrace();
 					}

@@ -1,61 +1,44 @@
 package com.obliquity.mailtool;
 
+import java.net.URISyntaxException;
+
 import javax.mail.Folder;
 import javax.mail.MessagingException;
-import javax.mail.Store;
 
 public class ListFolders extends AbstractMailClient {
 	public static void main(String[] args) {
-		String protocol = "imap";
-		String host = null;
-		int port = 0;
-		String user = null;
-		String folderName = null;
+		String folderURI = null;
 		boolean counters = false;
 		
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equalsIgnoreCase("-imap"))
-				protocol = "imap";
-			else if (args[i].equalsIgnoreCase("-imaps"))
-				protocol = "imaps";
-			else if (args[i].equalsIgnoreCase("-host"))
-				host = args[++i];
-			else if (args[i].equalsIgnoreCase("-user"))
-				user = args[++i];
-			else if (args[i].equalsIgnoreCase("-port"))
-				port = Integer.parseInt(args[++i]);
-			else if (args[i].equalsIgnoreCase("-folder"))
-				folderName = args[++i];
+			if (args[i].equalsIgnoreCase("-uri"))
+				folderURI = args[++i];
 			else if (args[i].equalsIgnoreCase("-counters"))
 				counters = true;
 		}
 		
-		if (user == null || host == null) {
-			System.err.println("You must specify -user, -host and -folder");
+		if (folderURI ==  null) {
+			System.err.println("You must specify -uri");
 			System.exit(1);
 		}
 		
 		ListFolders client = null;
 		
 		try {
-			client = new ListFolders(user, host, port, protocol);
-		} catch (MessagingException e) {
+			client = new ListFolders(folderURI);
+		} catch (MessagingException | URISyntaxException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 
-		client.run(folderName, counters);
+		client.run(counters);
 	}
 
-	private void run(String folderName, boolean counters) {
+	private void run(boolean counters) {
 		try {
-			Store store = getStore();
+			processFolder(getMainFolder(), counters);
 
-			Folder folder = folderName == null ? store.getDefaultFolder() : store.getFolder(folderName);
-
-			processFolder(folder, counters);
-
-			store.close();
+			getStore().close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -99,9 +82,9 @@ public class ListFolders extends AbstractMailClient {
 		}
 	}
 
-	public ListFolders(String user, String host, int port, String protocol)
-			throws MessagingException {
-		super(user, host, port, protocol);
+	public ListFolders(String folderURI)
+			throws MessagingException, URISyntaxException {
+		super(folderURI);
 	}
 
 }
