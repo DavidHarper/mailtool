@@ -17,18 +17,18 @@ public class FolderCopier extends AbstractMailClient {
 
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
-				case "-from":
-					fromURI = args[++i];
-					break;
+			case "-from":
+				fromURI = args[++i];
+				break;
 
-				case "-to":
-					toURI = args[++i];
-					break;
+			case "-to":
+				toURI = args[++i];
+				break;
 
-				default:
-					System.err.println("Unrecognised option: " + args[i]);
-					System.exit(1);
-					;
+			default:
+				System.err.println("Unrecognised option: " + args[i]);
+				System.exit(1);
+				;
 			}
 		}
 
@@ -46,31 +46,25 @@ public class FolderCopier extends AbstractMailClient {
 		}
 	}
 
-	public void copy(String toURI)
-			throws URISyntaxException, MessagingException {
+	public void copy(String toURI) throws URISyntaxException, MessagingException {
 		Folder fromFolder = getMainFolder();
-		
+
 		Folder toFolder = connectToFolder(toURI);
 
-		System.out.println("Source folder has " + fromFolder.getMessageCount()
-				+ " messages");
+		System.out.println("Source folder has " + fromFolder.getMessageCount() + " messages");
 
-		System.out.println("Destination folder has "
-				+ toFolder.getMessageCount() + " messages");
+		System.out.println("Destination folder has " + toFolder.getMessageCount() + " messages");
 
-		if (Boolean.getBoolean("reallycopy")) {
-			fromFolder.open(Folder.READ_ONLY);
-			toFolder.open(Folder.READ_WRITE);
-			
-			Message[] messages = fromFolder.getMessages();
+		fromFolder.open(Folder.READ_ONLY);
+		
+		toFolder.open(Folder.READ_WRITE);
 
-			fromFolder.copyMessages(messages, toFolder);
+		Message[] messages = fromFolder.getMessages();
 
-			System.out.println("Source folder now has "
-					+ fromFolder.getMessageCount() + " messages");
+		fromFolder.copyMessages(messages, toFolder);
 
-			System.out.println("Destination folder now has "
-					+ toFolder.getMessageCount() + " messages");
-		}
+		System.out.println("Source folder now has " + fromFolder.getMessageCount() + " messages");
+
+		System.out.println("Destination folder now has " + toFolder.getMessageCount() + " messages");
 	}
 }
