@@ -26,19 +26,26 @@ package com.obliquity.mailtool;
 
 import java.net.URISyntaxException;
 
+import javax.mail.Flags;
 import javax.mail.Folder;
+import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import javax.mail.search.FlagTerm;
 
 public class ListFolders extends AbstractMailClient {
 	public static void main(String[] args) {
 		String folderURI = null;
 		boolean counters = false;
+		boolean sizes = false;
 		
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equalsIgnoreCase("-uri"))
 				folderURI = args[++i];
 			else if (args[i].equalsIgnoreCase("-counters"))
 				counters = true;
+			else if (args[i].equalsIgnoreCase("-sizes"))
+				sizes = true;
 		}
 		
 		if (folderURI ==  null) {
@@ -55,10 +62,10 @@ public class ListFolders extends AbstractMailClient {
 			System.exit(1);
 		}
 
-		client.run(counters);
+		client.run(counters, sizes);
 	}
 
-	private void run(boolean counters) {
+	private void run(boolean counters, boolean sizes) {
 		try {
 			char delimiter = getMainFolder().getSeparator();
 			
@@ -69,7 +76,7 @@ public class ListFolders extends AbstractMailClient {
 			
 			System.out.println("# Folder delimiter is " + delimiter);
 			
-			processFolder(getMainFolder(), counters);
+			processFolder(getMainFolder(), counters, sizes);
 
 			getStore().close();
 		} catch (Exception e) {
@@ -79,7 +86,7 @@ public class ListFolders extends AbstractMailClient {
 		
 	}
 
-	private void processFolder(Folder folder, boolean counters) throws MessagingException {
+	private void processFolder(Folder folder, boolean counters, boolean sizes) throws MessagingException {
 		int type = folder.getType();
 		
 		if ((type & Folder.HOLDS_MESSAGES) != 0) {
@@ -98,6 +105,26 @@ public class ListFolders extends AbstractMailClient {
 				System.out.print("\t" + messages + "\t" + newMessages + "\t" + unreadMessages + "\t" + deletedMessages);
 			}
 			
+			if (sizes) {
+				folder.open(Folder.READ_ONLY);
+
+				FlagTerm notDeleted = new FlagTerm(new Flags(Flags.Flag.DELETED), false);
+				
+				Message[] messages = folder.search(notDeleted);
+				
+				long totalSize = 0;
+				
+				for (Message message : messages) {
+					if (message instanceof MimeMessage) {
+						totalSize += (long)((MimeMessage)message).getSize();
+					}
+				}
+				
+				folder.close(false);
+				
+				System.out.print("\t" + messages.length + "\t" + totalSize);
+			}
+			
 			System.out.println();
 		}
 
@@ -106,7 +133,7 @@ public class ListFolders extends AbstractMailClient {
 			
 			for (int i = 0; i < subfolders.length; i++) {
 				try {
-					processFolder(subfolders[i], counters);
+					processFolder(subfolders[i], counters, sizes);
 				}
 				catch (MessagingException e) {
 					System.err.println("ERROR whilst processing " + subfolders[i].getFullName() + " : " + e.getMessage());
