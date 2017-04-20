@@ -60,6 +60,15 @@ public class ListFolders extends AbstractMailClient {
 
 	private void run(boolean counters) {
 		try {
+			char delimiter = getMainFolder().getSeparator();
+			
+			String defaultFolderName = getMainFolder().getStore().getDefaultFolder().getFullName();
+			
+			if (defaultFolderName != null)
+				System.out.println("# Default folder is \"" + defaultFolderName + "\"");
+			
+			System.out.println("# Folder delimiter is " + delimiter);
+			
 			processFolder(getMainFolder(), counters);
 
 			getStore().close();
