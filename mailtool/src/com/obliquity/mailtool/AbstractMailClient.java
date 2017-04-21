@@ -81,6 +81,15 @@ public abstract class AbstractMailClient {
 
 		Authenticator auth = new SimpleAuthenticator(user);
 
+		if (Boolean.getBoolean("mailtool.useinsecuressl")) {
+			System.err.println("WARNING: Using insecure SSL, server certificate will not be checked.");
+		    props.setProperty("mail.imap.ssl.enable", "true");
+		    props.setProperty("mail.imap.ssl.socketFactory.class",
+							"com.obliquity.mailtool.ssl.InsecureSSLSocketFactory");
+		    props.setProperty("mail.imap.ssl.socketFactory.fallback", "false");
+
+		}
+		
 		Session session = Session.getInstance(props, auth);
 
 		boolean debug = Boolean.getBoolean("debug");
