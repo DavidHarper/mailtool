@@ -54,6 +54,10 @@ import javax.mail.search.SizeTerm;
 
 
 public class SearchClient extends AbstractMailClient {
+	private boolean recursive = false;
+	private boolean purge = false;
+	private boolean quiet = false;
+	
 	public static void main(String[] args) {
 		String folderURI = null;
 		String folderList = null;
@@ -194,7 +198,11 @@ public class SearchClient extends AbstractMailClient {
 		try {
 			SearchClient client = new SearchClient(folderURI);
 			
-			client.run(folderList, term, recursive, quiet, purge);
+			client.setRecursive(recursive);
+			client.setQuiet(quiet);
+			client.setPurge(purge);
+			
+			client.run(folderList, term);
 		} catch (MessagingException | URISyntaxException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -246,6 +254,30 @@ public class SearchClient extends AbstractMailClient {
 
 	public SearchClient(String folderURI) throws MessagingException, URISyntaxException {
 		super(folderURI);
+	}
+	
+	public void setQuiet(boolean quiet) {
+		this.quiet = quiet;
+	}
+	
+	public boolean isQuiet() {
+		return quiet;
+	}
+	
+	public void setRecursive(boolean recursive) {
+		this.recursive = recursive;
+	}
+	
+	public boolean isRecursive() {
+		return recursive;
+	}
+	
+	public void setPurge(boolean purge) {
+		this.purge = purge;
+	}
+	
+	public boolean isPurge() {
+		return purge;
 	}
 	
 	private static SearchTerm addSenderTerm(SearchTerm term, String sender) {
@@ -326,7 +358,7 @@ public class SearchClient extends AbstractMailClient {
 		return (term == null) ? sizeTerm : new AndTerm(term, sizeTerm);
 	}
 
-	public void run(String folderName, SearchTerm term, boolean recursive, boolean quiet, boolean purge) {
+	public void run(String folderName, SearchTerm term) {
 		try {
 			Store store = getStore();
 			
@@ -334,17 +366,18 @@ public class SearchClient extends AbstractMailClient {
 			
 			if (folders == null) {
 				if (purge)
-					throw new Exception("The -purge option requires that you specify one or more folder names explicitly with the -folders option.");
+					throw new Exception("The purge option requires that you specify one or more folder names explicitly, to avoid disasters!");
+				
+				setPurge(false);
 				
 				Folder folder = store.getDefaultFolder();
 				
-				processFolder(folder, term, recursive, quiet, false);
-
+				processFolder(folder, term);
 			} else {
 				for (String f : folders) {
 					Folder folder = store.getFolder(f);
 					
-					processFolder(folder, term, recursive, quiet, purge);
+					processFolder(folder, term);
 				}
 			}
 
@@ -355,9 +388,9 @@ public class SearchClient extends AbstractMailClient {
 		}
 	}
 
-	private void processFolder(Folder folder, SearchTerm term, boolean recursive, boolean quiet, boolean purge) throws Exception {
+	private void processFolder(Folder folder, SearchTerm term) throws Exception {
 		if (recursive && purge)
-			throw new Exception("The -purge and -recursive options are mutually exclusive, to avoid disasters!");
+			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
 			System.out.println("Searching folder " + folder.getFullName() + "\n");
@@ -365,10 +398,10 @@ public class SearchClient extends AbstractMailClient {
 			int type = folder.getType();
 
 			if ((type & Folder.HOLDS_MESSAGES) != 0)
-				processMessages(folder, term, quiet, purge);
+				processMessages(folder, term);
 
 			if ((type & Folder.HOLDS_FOLDERS) != 0 && recursive)
-				processSubFolders(folder, term, quiet);
+				processSubFolders(folder, term);
 			
 		} catch (MessagingException e) {
 			e.printStackTrace();
@@ -376,7 +409,7 @@ public class SearchClient extends AbstractMailClient {
 		}
 	}
 	
-	private void processMessages(Folder folder, SearchTerm term, boolean quiet, boolean purge) throws MessagingException, IOException {
+	private void processMessages(Folder folder, SearchTerm term) throws MessagingException, IOException {
 		try {
 			folder.open(purge ? Folder.READ_WRITE : Folder.READ_ONLY);
 		}
@@ -409,12 +442,12 @@ public class SearchClient extends AbstractMailClient {
 			System.out.println("Messages " + (purge ? "purged" : "found") + " : " + counter);
 	}
 	
-	private void processSubFolders(Folder folder, SearchTerm term, boolean quiet)
+	private void processSubFolders(Folder folder, SearchTerm term)
 			throws Exception {
 		Folder[] subfolders = folder.list();
 		
 		for (int i = 0; i < subfolders.length; i++)
-			processFolder(subfolders[i], term, true, quiet, false);
+			processFolder(subfolders[i], term);
 	}
 
 }
