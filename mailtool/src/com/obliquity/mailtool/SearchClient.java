@@ -333,9 +333,12 @@ public class SearchClient extends AbstractMailClient {
 			String[] folders = (folderName == null) ? null : folderName.split(",");
 			
 			if (folders == null) {
+				if (purge)
+					throw new Exception("The -purge option requires that you specify one or more folder names explicitly with the -folders option.");
+				
 				Folder folder = store.getDefaultFolder();
 				
-				processFolder(folder, term, recursive, quiet, purge);
+				processFolder(folder, term, recursive, quiet, false);
 
 			} else {
 				for (String f : folders) {
@@ -354,7 +357,7 @@ public class SearchClient extends AbstractMailClient {
 
 	private void processFolder(Folder folder, SearchTerm term, boolean recursive, boolean quiet, boolean purge) throws Exception {
 		if (recursive && purge)
-			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
+			throw new Exception("The -purge and -recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
 			System.out.println("Searching folder " + folder.getFullName() + "\n");
