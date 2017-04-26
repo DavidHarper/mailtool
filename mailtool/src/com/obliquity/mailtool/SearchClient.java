@@ -429,6 +429,7 @@ public class SearchClient extends AbstractMailClient {
 				} else {
 					System.out.println("Message " + i + ":");
 					displayMessage(messages[i], System.out);
+					System.out.println();
 				}
 				
 				if (purge)

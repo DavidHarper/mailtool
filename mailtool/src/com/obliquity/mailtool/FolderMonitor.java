@@ -82,6 +82,7 @@ public class FolderMonitor extends AbstractMailClient {
 						System.out.println("Message " + i + ":");
 						try {
 							displayMessage(messages[i], System.out);
+							System.out.println();
 						} catch (MessagingException | IOException e) {
 							e.printStackTrace();
 						}
