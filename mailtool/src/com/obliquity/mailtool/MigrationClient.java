@@ -25,6 +25,7 @@
 package com.obliquity.mailtool;
 
 import java.net.URISyntaxException;
+import java.text.DecimalFormat;
 
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -35,6 +36,8 @@ import javax.mail.search.FlagTerm;
 
 public class MigrationClient extends AbstractMailClient {
 	private final FlagTerm NOT_DELETED = new FlagTerm(new Flags(Flags.Flag.DELETED), false);
+	
+	private final DecimalFormat dfmt = new DecimalFormat("0.0");
 
 	public MigrationClient(String folderURI) throws URISyntaxException, MessagingException {
 		super(folderURI);
@@ -127,6 +130,9 @@ public class MigrationClient extends AbstractMailClient {
 	private void migrateFoldersAndMessages(Folder fromFolder, Folder toFolder) throws MessagingException {
 		int type = fromFolder.getType();
 		
+		if (!toFolder.exists())
+			toFolder.create(type);
+		
 		boolean holdsMessages = (type & Folder.HOLDS_MESSAGES) != 0;
 		boolean holdsFolders = (type & Folder.HOLDS_FOLDERS) != 0;
 		
@@ -163,9 +169,19 @@ public class MigrationClient extends AbstractMailClient {
 		
 		Message[] messages = fromFolder.search(NOT_DELETED);
 		
-		System.out.println("\tCopying " + messages.length + " messages from " + fromFolder.getFullName() + " to " + toFolder.getFullName());
+		System.out.print("\tCopying " + messages.length + " messages from " + fromFolder.getFullName() + " to " + toFolder.getFullName());
+		System.out.flush();
 
+		long startTime = System.currentTimeMillis();
+		
 		fromFolder.copyMessages(messages, toFolder);
+		
+		long endTime = System.currentTimeMillis();
+		
+		double seconds = (double)(endTime - startTime)/1000.0;
+		
+		System.out.println(" [" + dfmt.format(seconds) + " seconds]");
+		System.out.flush();
 		
 		fromFolder.close(false);
 		toFolder.close(false);
