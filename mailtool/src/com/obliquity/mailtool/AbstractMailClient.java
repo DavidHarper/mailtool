@@ -151,9 +151,7 @@ public abstract class AbstractMailClient {
 				}
 
 			}
-		}
-		
-		ps.println();
+		}		
 	}
 	
 	protected String flagsToString(Message message) throws MessagingException {
