@@ -108,7 +108,7 @@ public class MigrationClient extends AbstractMailClient {
 			Message[] messages = folder.search(NOT_DELETED);
 			messageCount += messages.length;
 			folder.close(false);
-			System.out.println("\t" + folder.getFullName() + " : " + messages.length + " messages [" + folder.getName() + "]");
+			System.out.println("\t" + folder.getFullName() + " : " + messages.length + " messages");
 		}
 		
 		if (holdsFolders) {
