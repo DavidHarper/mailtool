@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 import javax.mail.Address;
@@ -54,6 +55,8 @@ import javax.mail.search.SizeTerm;
 
 
 public class SearchClient extends AbstractMailClient {
+	private final MessageDateComparator comparator = new MessageDateComparator();
+	
 	private boolean recursive = false;
 	private boolean purge = false;
 	private boolean quiet = false;
@@ -421,6 +424,8 @@ public class SearchClient extends AbstractMailClient {
 		int counter = 0;
 		
 		Message[] messages = folder.search(term);
+		
+		Arrays.sort(messages, comparator);
 		
 		if (messages != null) {
 			for (int i = 0; i < messages.length; i++) {
