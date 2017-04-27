@@ -3,6 +3,7 @@ package com.obliquity.mailtool;
 import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
+import java.util.Arrays;
 
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -53,6 +54,8 @@ public class MessageChecksumClient extends AbstractMailClient {
 			folder.open(Folder.READ_ONLY);
 			
 			Message[] messages = folder.search(notDeleted);
+			
+			Arrays.sort(messages, new MessageDateComparator());
 
 			MessageDigest digester = MessageDigest.getInstance("MD5");
 			
