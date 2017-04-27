@@ -425,7 +425,8 @@ public class SearchClient extends AbstractMailClient {
 		
 		Message[] messages = folder.search(term);
 		
-		Arrays.sort(messages, comparator);
+		if (!quiet)
+			Arrays.sort(messages, comparator);
 		
 		if (messages != null) {
 			for (int i = 0; i < messages.length; i++) {
