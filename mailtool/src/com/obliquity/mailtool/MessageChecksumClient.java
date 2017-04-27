@@ -1,8 +1,10 @@
 package com.obliquity.mailtool;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,11 +23,18 @@ public class MessageChecksumClient extends AbstractMailClient {
 	public static void main(String[] args) {
 		String folderURI = null;
 		boolean deleteDuplicates = false;
+		String digestName = "MD5";
 		
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i].toLowerCase()) {
 			case "-uri":
 				folderURI = args[++i];
+				break;
+				
+			case "-digest":
+			case "-digestname":
+			case "-algorithm":
+				digestName = args[++i];
 				break;
 				
 			case "-deleteduplicates":
@@ -41,37 +50,41 @@ public class MessageChecksumClient extends AbstractMailClient {
 		MessageChecksumClient checksummer = null;
 		
 		try {
+			MessageDigest digester = MessageDigest.getInstance(digestName);
+			
 			checksummer = new MessageChecksumClient(folderURI);
 			
-			checksummer.run(deleteDuplicates);
-		} catch (Exception e) {
+			checksummer.run(digester, deleteDuplicates);
+		} catch (NoSuchAlgorithmException | URISyntaxException | MessagingException | IOException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 	}
 
-	private void run(boolean deleteDuplicates) throws Exception {
+	private void run(MessageDigest digester, boolean deleteDuplicates) throws IOException  {
 		try {
 			Folder folder = getMainFolder();
 			
 			int flags = folder.getType();
 			
-			if ((flags & Folder.HOLDS_MESSAGES) == 0)
-				throw new Exception("Folder " + folder.getFullName() + " cannot contain messages.");
+			if ((flags & Folder.HOLDS_MESSAGES) == 0) {
+				System.err.println("Folder " + folder.getFullName() + " cannot contain messages.");
+				return;
+			}
 						
 			FlagTerm notDeleted = new FlagTerm(new Flags(Flags.Flag.DELETED), false);
 			
-			folder.open(Folder.READ_WRITE);
+			folder.open(deleteDuplicates? Folder.READ_WRITE : Folder.READ_ONLY);
 			
 			Message[] messages = folder.search(notDeleted);
 			
 			Arrays.sort(messages, new MessageDateComparator());
-
-			MessageDigest digester = MessageDigest.getInstance("MD5");
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			
 			Map<String, Message> messageMap = new HashMap<String, Message>();
+			
+			String algorithm = digester.getAlgorithm();
 
 			for (Message message : messages) {
 				displayMessage(message, System.out);
@@ -90,7 +103,7 @@ public class MessageChecksumClient extends AbstractMailClient {
 				
 				boolean alreadySeen = messageMap.containsKey(digestString);
 				
-				System.out.print("Digest: " + digestString);
+				System.out.print(algorithm + ": " + digestString);
 				
 				if (alreadySeen) {
 					System.out.print(" [ALREADY SEEN");
