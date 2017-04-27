@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.mail.Flags;
+import javax.mail.Flags.Flag;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -19,15 +20,22 @@ public class MessageChecksumClient extends AbstractMailClient {
 	}
 	public static void main(String[] args) {
 		String folderURI = null;
+		boolean deleteDuplicates = false;
 		
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equalsIgnoreCase("-uri"))
+			switch (args[i].toLowerCase()) {
+			case "-uri":
 				folderURI = args[++i];
-			else {
+				break;
+				
+			case "-deleteduplicates":
+				deleteDuplicates = true;
+				break;
+				
+			default:	
 				System.err.println("Unknown option: " + args[i]);
 				System.exit(1);
-			}
- 				
+			}		
 		}
 		
 		MessageChecksumClient checksummer = null;
@@ -35,14 +43,14 @@ public class MessageChecksumClient extends AbstractMailClient {
 		try {
 			checksummer = new MessageChecksumClient(folderURI);
 			
-			checksummer.run();
+			checksummer.run(deleteDuplicates);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 	}
 
-	private void run() throws Exception {
+	private void run(boolean deleteDuplicates) throws Exception {
 		try {
 			Folder folder = getMainFolder();
 			
@@ -53,7 +61,7 @@ public class MessageChecksumClient extends AbstractMailClient {
 						
 			FlagTerm notDeleted = new FlagTerm(new Flags(Flags.Flag.DELETED), false);
 			
-			folder.open(Folder.READ_ONLY);
+			folder.open(Folder.READ_WRITE);
 			
 			Message[] messages = folder.search(notDeleted);
 			
@@ -82,11 +90,21 @@ public class MessageChecksumClient extends AbstractMailClient {
 				
 				boolean alreadySeen = messageMap.containsKey(digestString);
 				
-				System.out.println ("Digest: " + digestString + (alreadySeen ? " [ALREADY SEEN]" : ""));
+				System.out.print("Digest: " + digestString);
 				
-				if (!alreadySeen)
+				if (alreadySeen) {
+					System.out.print(" [ALREADY SEEN");
+					
+					if (deleteDuplicates) {
+						message.setFlag(Flag.DELETED, true);
+						System.out.print(", FLAGGED FOR DELETION");
+					}
+					
+					System.out.print("]");
+				} else
 					messageMap.put(digestString,  message);
 				
+				System.out.println();
 				System.out.println();
 			}
 			
