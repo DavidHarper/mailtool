@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -60,6 +62,8 @@ public class MessageChecksumClient extends AbstractMailClient {
 			MessageDigest digester = MessageDigest.getInstance("MD5");
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			
+			Map<String, Message> messageMap = new HashMap<String, Message>();
 
 			for (Message message : messages) {
 				displayMessage(message, System.out);
@@ -74,16 +78,15 @@ public class MessageChecksumClient extends AbstractMailClient {
 				
 				byte[] digest = digester.digest(bytes);
 				
-				System.out.print("Digest:");
+				String digestString = toHexString(digest);
 				
-				for (int i = 0; i < digest.length; i++) {
-					if ((i%4) == 0)
-						System.out.print(' ');
-						
-					System.out.format(" %02X", digest[i]);
-				}
+				boolean alreadySeen = messageMap.containsKey(digestString);
 				
-				System.out.println();
+				System.out.println ("Digest: " + digestString + (alreadySeen ? " [ALREADY SEEN]" : ""));
+				
+				if (!alreadySeen)
+					messageMap.put(digestString,  message);
+				
 				System.out.println();
 			}
 			
@@ -92,5 +95,23 @@ public class MessageChecksumClient extends AbstractMailClient {
 			e.printStackTrace();
 			System.exit(1);
 		}
+	}
+	
+	/*
+	 * The following code was borrowed from StackOverflow
+	 * http://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java/9855338#9855338
+	 */
+	
+	private final char[] HEXADECIMAL_DIGITS = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+	
+	private String toHexString(byte[] bytes) {    
+	    char[] hexChars = new char[bytes.length * 2];
+	    int v;
+	    for ( int j = 0; j < bytes.length; j++ ) {
+	        v = bytes[j] & 0xFF;
+	        hexChars[j*2] = HEXADECIMAL_DIGITS[v >>> 4];
+	        hexChars[j*2 + 1] = HEXADECIMAL_DIGITS[v & 0x0F];
+	    }
+	    return new String(hexChars);
 	}
 }
