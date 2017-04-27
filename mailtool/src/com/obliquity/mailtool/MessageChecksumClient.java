@@ -85,6 +85,8 @@ public class MessageChecksumClient extends AbstractMailClient {
 			Map<String, Message> messageMap = new HashMap<String, Message>();
 			
 			String algorithm = digester.getAlgorithm();
+			
+			int deleted = 0;
 
 			for (Message message : messages) {
 				displayMessage(message, System.out);
@@ -111,6 +113,7 @@ public class MessageChecksumClient extends AbstractMailClient {
 					if (deleteDuplicates) {
 						message.setFlag(Flag.DELETED, true);
 						System.out.print(", FLAGGED FOR DELETION");
+						deleted++;
 					}
 					
 					System.out.print("]");
@@ -120,6 +123,9 @@ public class MessageChecksumClient extends AbstractMailClient {
 				System.out.println();
 				System.out.println();
 			}
+			
+			if (deleteDuplicates)
+				System.out.println("\nSUMMARY\n\n" + messages.length + " messages were found, " + deleted + " were marked as duplicates");
 			
 			folder.close(false);
 		} catch (MessagingException e) {
