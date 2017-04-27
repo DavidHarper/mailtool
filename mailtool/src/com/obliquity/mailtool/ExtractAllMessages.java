@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -71,6 +72,8 @@ public class ExtractAllMessages extends AbstractMailClient {
 			folder.open(Folder.READ_ONLY);
 			
 			Message[] messages = folder.search(notDeleted);
+			
+			Arrays.sort(messages, new MessageDateComparator());
 			
 			for (int i = 0; i < messages.length; i++)
 				copyMessage((MimeMessage)messages[i], directory, i);
