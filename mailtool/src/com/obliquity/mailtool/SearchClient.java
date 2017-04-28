@@ -208,6 +208,7 @@ public class SearchClient extends AbstractMailClient {
 			client.setRecursive(recursive);
 			client.setQuiet(quiet);
 			client.setPurge(purge);
+			client.setSort(sort);
 			
 			client.run(folderList, term);
 		} catch (MessagingException | URISyntaxException e) {
