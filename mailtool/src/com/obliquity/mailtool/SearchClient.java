@@ -60,6 +60,7 @@ public class SearchClient extends AbstractMailClient {
 	private boolean recursive = false;
 	private boolean purge = false;
 	private boolean quiet = false;
+	private boolean sort = false;
 	
 	public static void main(String[] args) {
 		String folderURI = null;
@@ -77,6 +78,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean deleted = false;
 		boolean purge = false;
 		boolean quiet = false;
+		boolean sort = false;
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 		
 		for (int i = 0; i < args.length; i++) {
@@ -140,6 +142,8 @@ public class SearchClient extends AbstractMailClient {
 				recursive = true;
 			else if (args[i].equalsIgnoreCase("-quiet"))
 				quiet = true;
+			else if (args[i].equalsIgnoreCase("-sort"))
+				sort = true;
 			else if (args[i].equalsIgnoreCase("-purge"))
 				purge = true;
 			else if (args[i].equalsIgnoreCase("-help")) {
@@ -281,6 +285,14 @@ public class SearchClient extends AbstractMailClient {
 	
 	public boolean isPurge() {
 		return purge;
+	}
+	
+	public void setSort(boolean sort) {
+		this.sort = sort;
+	}
+	
+	public boolean isSort() {
+		return sort;
 	}
 	
 	private static SearchTerm addSenderTerm(SearchTerm term, String sender) {
@@ -425,7 +437,7 @@ public class SearchClient extends AbstractMailClient {
 		
 		Message[] messages = folder.search(term);
 		
-		if (!quiet)
+		if (sort)
 			Arrays.sort(messages, comparator);
 		
 		if (messages != null) {
