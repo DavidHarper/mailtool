@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Date;
 import java.util.Properties;
 
 import javax.mail.Address;
@@ -118,7 +119,11 @@ public abstract class AbstractMailClient {
 			ps.println();
 		}
 		
-		ps.println("Date:    " + message.getSentDate());
+		Date sentDate = message.getSentDate();
+		Date receivedDate = message.getReceivedDate();
+		
+		ps.println("Date:    " + (sentDate != null ? sentDate : 
+			(receivedDate != null ? receivedDate + " [Received]" : "[NO DATES]")));
 		
 		ps.println("Subject: " + message.getSubject());		
 	}
