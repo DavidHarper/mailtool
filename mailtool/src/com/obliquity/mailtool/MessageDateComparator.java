@@ -25,6 +25,7 @@
 package com.obliquity.mailtool;
 
 import java.util.Comparator;
+import java.util.Date;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -32,10 +33,19 @@ import javax.mail.MessagingException;
 public class MessageDateComparator implements Comparator<Message>{
 	public int compare(Message msg1, Message msg2) {
 		try {
-			return msg1.getSentDate().compareTo(msg2.getSentDate());
+			Date date1 = getMessageDate(msg1);
+			Date date2 = getMessageDate(msg2);
+			
+			return date1 != null && date2 != null ? date1.compareTo(date2) : 0;
 		} catch (MessagingException e) {
 			e.printStackTrace();
 			return 0;
 		}
+	}
+	
+	private Date getMessageDate(Message msg) throws MessagingException {
+		Date date = msg.getSentDate();
+		
+		return date != null ? date : msg.getReceivedDate();
 	}
 }
