@@ -83,7 +83,7 @@ public class MigrationClient extends AbstractMailClient {
 	
 	private static void showHelp(String message) {
 		if (message != null)
-			System.err.println("ERROR: " + message);
+			System.err.println("ERROR: " + message + "\n");
 		
 		String[] lines = {
 				"WHAT THIS PROGRAM DOES",
