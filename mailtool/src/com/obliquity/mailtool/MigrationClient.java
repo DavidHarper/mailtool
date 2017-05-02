@@ -48,7 +48,7 @@ public class MigrationClient extends AbstractMailClient {
 		String toURI = null;
 
 		for (int i = 0; i < args.length; i++) {
-			switch (args[i]) {
+			switch (args[i].toLowerCase()) {
 			case "-from":
 				fromURI = args[++i];
 				break;
@@ -56,16 +56,19 @@ public class MigrationClient extends AbstractMailClient {
 			case "-to":
 				toURI = args[++i];
 				break;
+				
+			case "-help":
+				showHelp(null);
+				System.exit(0);
 
 			default:
-				System.err.println("Unrecognised option: " + args[i]);
+				showHelp("Unrecognised option: " + args[i]);
 				System.exit(1);
-				;
 			}
 		}
 
 		if (fromURI == null || toURI == null) {
-			System.err.println("You must supply both -from and -to URIs");
+			showHelp("You must supply both -from and -to URIs");
 			System.exit(2);
 		}
 
@@ -76,6 +79,73 @@ public class MigrationClient extends AbstractMailClient {
 		} catch (URISyntaxException | MessagingException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private static void showHelp(String message) {
+		if (message != null)
+			System.err.println("ERROR: " + message);
+		
+		String[] lines = {
+				"WHAT THIS PROGRAM DOES",
+				"",
+				"This Java program copies folders and messages from a source IMAP server",
+				"to a destination IMAP server.  Source and destination are both specified as",
+				"URIs in the form imaps://<USERNAME>@<HOST>/<FOLDER>",
+				"",
+				"If no folder is explicitly specified in one or other URI, then the program",
+				"uses the folder that is the root of the IMAP folder hierarchy for that user",
+				"account.",
+				"",
+				"The program will copy copy all subfolders and messages contained in the",
+				"folder into the destination folder.  For example,",
+				"",
+				"<COPY_COMMAND> -from imaps://bob@imap.example.com/MyStuff -to imaps://bob@imap.google.com/Personal",
+				"",
+				"copies subfolder MyStuff/XYZ on the source IMAP server to Personal/XYZ on",
+				"the destination IMAP server.  In addition, all messages contained in folder",
+				"MyStuff on the source IMAP server will be copied into folder Personal",
+				"on the destination IMAP server.",
+				"",
+				"If any destination folders or subfolders do not exist, they will be created.",
+				"",
+				"If the username for either account contains an @ symbol, it must be replaced by",
+				"the URL-encoded version i.e. %40.  For example, username bob@microsoft.com on",
+				"IMAP server imap.example.com should be specified as the URI",
+				"",
+				"\timaps://bob%40microsoft.com@imap.example.com/",
+				"",
+				"If the folder names contain non-alphanumeric characters, they must be replaced by",
+				"the URL-encoded version of the character.  In particular, spaces must be replaced",
+				"by %20.",
+				"",
+				"WARNING: Error checking is basic.  The program will exit immediately if an error",
+				"is encountered.  This can include dropped network connections, exceeding disk",
+				"quota on the destination server, illegal IMAP operations, etc.",
+				"",
+				"The program does not check for duplicate emails, so if it is run more than once",
+				"with the same source and destination arguments, you WILL end up with duplicates",
+				"of all of the emails copied from the source.",
+				"",
+				"SOURCE CODE",
+				"",
+				"The source code for this program is available at GitHub:",
+				"",
+				"\thttps://github.com/DavidHarper/mailtool",
+				"",
+				"DISCLAIMER OF LIABILITY",
+				"",
+				"The GNU General Public Licence (https://www.gnu.org/licenses/gpl-3.0.en.html)",
+				"applies to this program.  Please note in particular:",
+				"",
+				" * This program is distributed in the hope that it will be useful,",
+				" * but WITHOUT ANY WARRANTY; without even the implied warranty of",
+				" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU",
+				" * General Public License for more details.",
+				""
+		};
+		
+		for (String line : lines)
+			System.err.println(line);
 	}
 	
 	public void migrateTo(String toURI) throws URISyntaxException, MessagingException {
