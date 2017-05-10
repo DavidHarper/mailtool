@@ -55,6 +55,8 @@ import javax.mail.search.SizeTerm;
 
 
 public class SearchClient extends AbstractMailClient {
+	private static final String DANGER_MODE= "dangerMode";
+	
 	private final MessageDateComparator comparator = new MessageDateComparator();
 	
 	private boolean recursive = false;
@@ -160,7 +162,7 @@ public class SearchClient extends AbstractMailClient {
 			System.exit(1);
 		}
 		
-		if (recursive && purge) {
+		if (recursive && purge && !Boolean.getBoolean(DANGER_MODE)) {
 			printUsage(System.err, "For safety, you can't use the -purge option with the -recursive option.");
 			System.exit(1);
 		}
@@ -405,7 +407,7 @@ public class SearchClient extends AbstractMailClient {
 	}
 
 	private void processFolder(Folder folder, SearchTerm term) throws Exception {
-		if (recursive && purge)
+		if (recursive && purge && !Boolean.getBoolean(DANGER_MODE))
 			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
