@@ -27,7 +27,9 @@ package com.obliquity.mailtool;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -36,11 +38,15 @@ import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
 import javax.mail.internet.MimeMessage;
 import javax.mail.search.FlagTerm;
 
 public class ExtractAllMessages extends AbstractMailClient {
 	private final DecimalFormat fmt = new DecimalFormat("000000");
+	
+	private static final int BUFFER_SIZE = 65536;
 	
 	public ExtractAllMessages(String folderURI) throws URISyntaxException, MessagingException {
 		super(folderURI);
@@ -110,18 +116,73 @@ public class ExtractAllMessages extends AbstractMailClient {
 	}
 
 	private void copyMessage(MimeMessage message, File directory, int index) throws IOException, MessagingException {
-		String filename = "message." + fmt.format(index);
+		String messageName = "message." + fmt.format(index);
 		
-		File file = new File(directory, filename);
+		Object content = message.getContent();
 		
-		FileOutputStream fos = new FileOutputStream(file);
+		if (content instanceof Multipart) {
+			Multipart mp = (Multipart)content;
+			
+			String filename = messageName + ".txt";
+			
+			PrintStream ps = new PrintStream(new FileOutputStream(new File(directory, filename)));
+			
+			int parts = mp.getCount();
+			
+			long totalBytes = 0;
+			
+			for (int j = 0; j < parts; j++) {
+				Part part = mp.getBodyPart(j);
+				ps.print("Part " + j + ": Content-Type=" + part.getContentType() + "; Length=" + part.getSize());
+				
+				String partFilename = messageName + "." + j;
+				
+				File partFile = new File(directory, partFilename);
+				
+				FileOutputStream fos = new FileOutputStream(partFile);
+				
+				InputStream is = part.getInputStream();
+				
+				copyFile(is,fos);
+
+				is.close();
+				
+				fos.close();
+				
+				long bytes = partFile.length();
+				
+				totalBytes += bytes;
+				
+				ps.println(" written (" + bytes + " bytes) to file " + partFile.getAbsolutePath());
+			}
+			
+			ps.close();
+			
+			System.out.println("Wrote message " + index + " (" + totalBytes + " bytes) in " + parts + " parts.");
+		} else {
+			String filename = messageName + ".msg";
+			
+			File file = new File(directory, filename);
+			
+			FileOutputStream fos = new FileOutputStream(file);
+			
+			message.writeTo(fos);
+			
+			fos.close();
+			
+			long bytes = file.length();
+			
+			System.out.println("Wrote message " + index + " (" + bytes + " bytes) to file " + file.getAbsolutePath());			
+		}
+	}
+	
+	private void copyFile(InputStream is, OutputStream os) throws IOException {
+		byte[] buffer = new byte[BUFFER_SIZE];
 		
-		message.writeTo(fos);
+		int bytes;
 		
-		fos.close();
-		
-		long bytes = file.length();
-		
-		System.out.println("Wrote message " + index + " (" + bytes + " bytes) to file " + file.getAbsolutePath());
+		while ((bytes = is.read(buffer)) > 0) {
+			os.write(buffer, 0, bytes);
+		}
 	}
 }
