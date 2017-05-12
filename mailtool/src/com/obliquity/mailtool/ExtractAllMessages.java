@@ -134,15 +134,49 @@ public class ExtractAllMessages extends AbstractMailClient {
 			
 			for (int j = 0; j < parts; j++) {
 				Part part = mp.getBodyPart(j);
-				ps.println("Part " + j + "\nContent-Type: " + part.getContentType() + "\nSize: " + part.getSize());
-				ps.println("Content-Disposition: " + part.getDisposition());
-				ps.println("Content-Description: " + part.getDescription());
-				ps.println("Filename: " + part.getFileName());
 				
-				if (part instanceof MimePart)
-					ps.println("Content-ID: " + ((MimePart)part).getContentID());
+				if (j > 0)
+					ps.println();
 				
-				String partFilename = messageName + "." + j;
+				ps.println("Part " + j);
+				
+				String contentType = part.getContentType();
+				
+				int pos = contentType.indexOf(';');
+				
+				if (pos > 0)
+					contentType = contentType.substring(0, pos);
+				
+				ps.println("Content-Type: " + contentType);
+				
+				int size = part.getSize();
+				
+				if (size > 0)
+					ps.println("Size: " + size);
+				
+				String disposition = part.getDisposition();
+				
+				if (disposition != null)
+					ps.println("Content-Disposition: " + disposition);
+				
+				String description = part.getDescription();
+				
+				if (description != null)
+					ps.println("Content-Description: " + description);
+				
+				String partFilename = part.getFileName();
+				
+				if (partFilename != null)
+					ps.println("Filename: " + partFilename);
+				
+				if (part instanceof MimePart) {
+					String contentID = ((MimePart)part).getContentID();
+					
+					if (contentID != null)
+						ps.println("Content-ID: " + contentID);
+				}
+				
+				partFilename = messageName + "." + j;
 				
 				File partFile = new File(directory, partFilename);
 				
