@@ -41,6 +41,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimePart;
 import javax.mail.search.FlagTerm;
 
 public class ExtractAllMessages extends AbstractMailClient {
@@ -133,7 +134,13 @@ public class ExtractAllMessages extends AbstractMailClient {
 			
 			for (int j = 0; j < parts; j++) {
 				Part part = mp.getBodyPart(j);
-				ps.print("Part " + j + ": Content-Type=" + part.getContentType() + "; Length=" + part.getSize());
+				ps.println("Part " + j + "\nContent-Type: " + part.getContentType() + "\nSize: " + part.getSize());
+				ps.println("Content-Disposition: " + part.getDisposition());
+				ps.println("Content-Description: " + part.getDescription());
+				ps.println("Filename: " + part.getFileName());
+				
+				if (part instanceof MimePart)
+					ps.println("Content-ID: " + ((MimePart)part).getContentID());
 				
 				String partFilename = messageName + "." + j;
 				
@@ -153,7 +160,7 @@ public class ExtractAllMessages extends AbstractMailClient {
 				
 				totalBytes += bytes;
 				
-				ps.println(" written (" + bytes + " bytes) to file " + partFile.getAbsolutePath());
+				ps.println("Written (" + bytes + " bytes) to file " + partFile.getAbsolutePath());
 			}
 			
 			ps.close();
