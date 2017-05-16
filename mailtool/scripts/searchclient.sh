@@ -14,4 +14,4 @@ APP_CLASS="com.obliquity.mailtool.SearchClient"
 # does not have a valid certificate.  Only do this if you REALLY
 # trust the identity of the server!
 
-java ${JAVA_OPTS} -Djava.awt.headless=true -classpath "${CLASSPATH}" ${APP_CLASS} "$@"
+java ${JAVA_OPTS} -classpath "${CLASSPATH}" ${APP_CLASS} "$@"
