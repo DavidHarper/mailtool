@@ -90,10 +90,10 @@ public abstract class AbstractMailClient {
 		    props.setProperty("mail.imap.ssl.socketFactory.fallback", "false");
 
 		}
-		
+				
 		Session session = Session.getInstance(props, auth);
 
-		boolean debug = Boolean.getBoolean("debug");
+		boolean debug = Boolean.getBoolean("mail.debug");
 
 		session.setDebug(debug);
 
