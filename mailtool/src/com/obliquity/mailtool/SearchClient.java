@@ -63,6 +63,7 @@ public class SearchClient extends AbstractMailClient {
 	private boolean purge = false;
 	private boolean quiet = false;
 	private boolean sort = false;
+	private Folder copyToFolder = null;
 	
 	public static void main(String[] args) {
 		String folderURI = null;
@@ -81,6 +82,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean purge = false;
 		boolean quiet = false;
 		boolean sort = false;
+		String copyToFolderName = null;
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 		
 		for (int i = 0; i < args.length; i++) {
@@ -148,6 +150,8 @@ public class SearchClient extends AbstractMailClient {
 				sort = true;
 			else if (args[i].equalsIgnoreCase("-purge"))
 				purge = true;
+			else if (args[i].equalsIgnoreCase("-copyto"))
+				copyToFolderName = args[++i];
 			else if (args[i].equalsIgnoreCase("-help")) {
 				printUsage(System.err, null);
 				System.exit(0);
@@ -212,6 +216,9 @@ public class SearchClient extends AbstractMailClient {
 			client.setPurge(purge);
 			client.setSort(sort);
 			
+			if (copyToFolderName != null)
+				client.setMoveToFolder(copyToFolderName);
+			
 			client.run(folderList, term);
 		} catch (MessagingException | URISyntaxException e) {
 			e.printStackTrace();
@@ -230,6 +237,8 @@ public class SearchClient extends AbstractMailClient {
 		"\t-quiet\t\tDisplay only a summary of the messages",
 		"",
 		"\t-purge\t\t[BOOLEAN] Mark all matching messages for deletion",
+		"",
+		"\t-copyto\t\tCopy all matching messages to the named folder",
 		"",
 		"NOTE THAT -purge CANNOT BE USED WITH -recursive",
 		"",
@@ -296,6 +305,17 @@ public class SearchClient extends AbstractMailClient {
 	
 	public boolean isSort() {
 		return sort;
+	}
+	
+	public void setMoveToFolder(String copyToFolderName) throws MessagingException {
+		Store store = getStore();
+		
+		Folder folder = store.getFolder(copyToFolderName);
+		
+		if (!folder.exists())
+			folder.create(Folder.HOLDS_MESSAGES);
+		
+		this.copyToFolder = folder;
 	}
 	
 	private static SearchTerm addSenderTerm(SearchTerm term, String sender) {
@@ -444,6 +464,9 @@ public class SearchClient extends AbstractMailClient {
 			Arrays.sort(messages, comparator);
 		
 		if (messages != null) {
+			if (copyToFolder != null)
+				folder.copyMessages(messages, copyToFolder);
+			
 			for (int i = 0; i < messages.length; i++) {
 				if (quiet) {
 					counter++;
@@ -455,7 +478,7 @@ public class SearchClient extends AbstractMailClient {
 				
 				if (purge)
 					messages[i].setFlag(Flags.Flag.DELETED, true);
-			}
+			}				
 		}
 		
 		folder.close(purge);
