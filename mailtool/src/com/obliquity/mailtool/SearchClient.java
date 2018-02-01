@@ -63,7 +63,10 @@ public class SearchClient extends AbstractMailClient {
 	private boolean purge = false;
 	private boolean quiet = false;
 	private boolean sort = false;
+	private boolean tabular = false;
 	private Folder copyToFolder = null;
+	
+	private static final char TAB = '\t';
 	
 	public static void main(String[] args) {
 		String folderURI = null;
@@ -80,6 +83,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean recursive = false;
 		boolean deleted = false;
 		boolean purge = false;
+		boolean tabular = false;
 		boolean quiet = false;
 		boolean sort = false;
 		String copyToFolderName = null;
@@ -150,6 +154,8 @@ public class SearchClient extends AbstractMailClient {
 				sort = true;
 			else if (args[i].equalsIgnoreCase("-purge"))
 				purge = true;
+			else if (args[i].equalsIgnoreCase("-tabular"))
+				tabular = true;
 			else if (args[i].equalsIgnoreCase("-copyto"))
 				copyToFolderName = args[++i];
 			else if (args[i].equalsIgnoreCase("-help")) {
@@ -199,6 +205,8 @@ public class SearchClient extends AbstractMailClient {
 		
 		if (deleted)
 			term = addDeletedTerm(term);
+		else
+			term = addNotDeletedTerm(term);
 		
 		if (largerThan > 0)
 			term = addLargerThanTerm(term, largerThan);
@@ -215,6 +223,7 @@ public class SearchClient extends AbstractMailClient {
 			client.setQuiet(quiet);
 			client.setPurge(purge);
 			client.setSort(sort);
+			client.setTabular(tabular);
 			
 			if (copyToFolderName != null)
 				client.setMoveToFolder(copyToFolderName);
@@ -237,6 +246,8 @@ public class SearchClient extends AbstractMailClient {
 		"\t-quiet\t\tDisplay only a summary of the messages",
 		"",
 		"\t-purge\t\t[BOOLEAN] Mark all matching messages for deletion",
+		"",
+		"\t-tabular\t\t[BOOLEAN] Display message headers in tab-separated format",
 		"",
 		"\t-copyto\t\tCopy all matching messages to the named folder",
 		"",
@@ -305,6 +316,14 @@ public class SearchClient extends AbstractMailClient {
 	
 	public boolean isSort() {
 		return sort;
+	}
+	
+	public void setTabular(boolean tabular) {
+		this.tabular = tabular;
+	}
+	
+	public boolean isTabular() {
+		return tabular;
 	}
 	
 	public void setMoveToFolder(String copyToFolderName) throws MessagingException {
@@ -390,6 +409,12 @@ public class SearchClient extends AbstractMailClient {
 		return (term == null) ? flagTerm : new AndTerm(term, flagTerm);
 	}
 
+	private static SearchTerm addNotDeletedTerm(SearchTerm term) {
+		FlagTerm flagTerm = new FlagTerm(new Flags(Flags.Flag.DELETED), false);
+
+		return (term == null) ? flagTerm : new AndTerm(term, flagTerm);
+	}
+
 	private static SearchTerm addLargerThanTerm(SearchTerm term, int largerThan) {
 		SizeTerm sizeTerm = new SizeTerm(SizeTerm.GT, largerThan);
 
@@ -431,7 +456,8 @@ public class SearchClient extends AbstractMailClient {
 			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
-			System.out.println("Searching folder " + folder.getFullName() + "\n");
+			if (!tabular)
+				System.out.println("Searching folder " + folder.getFullName() + "\n");
 
 			int type = folder.getType();
 
@@ -471,9 +497,13 @@ public class SearchClient extends AbstractMailClient {
 				if (quiet) {
 					counter++;
 				} else {
-					System.out.println("Message " + i + ":");
-					displayMessage(messages[i], System.out);
-					System.out.println();
+					if (tabular)
+						displayMessageInTabularFormat(messages[i], System.out);
+					else {
+						System.out.println("Message " + i + ":");
+						displayMessage(messages[i], System.out);
+						System.out.println();
+					}
 				}
 				
 				if (purge)
@@ -485,6 +515,28 @@ public class SearchClient extends AbstractMailClient {
 		
 		if (quiet)
 			System.out.println("Messages " + (purge ? "purged" : "found") + " : " + counter);
+	}
+	
+	private final SimpleDateFormat datefmt = new SimpleDateFormat(
+			"yyyy-MM-dd HH:mm:ss");
+	
+	private void displayMessageInTabularFormat(Message message, PrintStream ps) throws MessagingException {
+		InternetAddress from = (InternetAddress)message.getFrom()[0];
+		InternetAddress to = (InternetAddress)message.getAllRecipients()[0];
+		Date sentDate = message.getSentDate();
+		String subject = message.getSubject();
+		String folderName = message.getFolder().getFullName();
+		
+		ps.print(folderName);
+		ps.print(TAB);
+		ps.print(from.getAddress());
+		ps.print(TAB);
+		ps.print(to.getAddress());
+		ps.print(TAB);
+		ps.print(datefmt.format(sentDate));
+		ps.print(TAB);
+		ps.print(subject);
+		ps.println();
 	}
 	
 	private void processSubFolders(Folder folder, SearchTerm term)
