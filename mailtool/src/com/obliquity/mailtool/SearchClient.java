@@ -533,7 +533,7 @@ public class SearchClient extends AbstractMailClient {
 		ps.print(TAB);
 		ps.print(to.getAddress());
 		ps.print(TAB);
-		ps.print(datefmt.format(sentDate));
+		ps.print(sentDate != null ? datefmt.format(sentDate) : "NULL");
 		ps.print(TAB);
 		ps.print(subject);
 		ps.println();
