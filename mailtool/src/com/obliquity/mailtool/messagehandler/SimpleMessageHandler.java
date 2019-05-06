@@ -22,7 +22,7 @@
  * the archive of this library for complete text of license.
  */
 
-package com.obliquity.mailtool;
+package com.obliquity.mailtool.messagehandler;
 
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
@@ -31,6 +31,8 @@ import java.util.Date;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
+
+import com.obliquity.mailtool.MessageHandler;
 
 public class SimpleMessageHandler implements MessageHandler {
 	private final PrintStream ps = System.out;
