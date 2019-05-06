@@ -39,7 +39,7 @@ public class RouterLogParser {
 	
 	private final Pattern mainPattern = Pattern.compile(MAIN_PATTERN);
 	
-	private static final String LAN_ACCESS_PATTERN = "from (\\d+\\.\\d+\\.\\d+\\.\\d+):\\d+ to (\\d+\\.\\d+\\.\\d+\\.\\d+):(\\d+)";
+	private static final String LAN_ACCESS_PATTERN = "from (\\d+\\.\\d+\\.\\d+\\.\\d+):\\d+ to \\d+\\.\\d+\\.\\d+\\.\\d+:(\\d+)";
 	
 	private final Pattern lanAccessPattern = Pattern.compile(LAN_ACCESS_PATTERN);
 	
@@ -122,11 +122,11 @@ public class RouterLogParser {
 		
 		Date whenDate = dateInputFormat.parse(when);
 		
-		System.out.print(dateOutputFormat.format(whenDate) + "\tLAN_ACCESS");
+		System.out.print(dateOutputFormat.format(whenDate) + ",LAN_ACCESS");
 		
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
-				System.out.print("\t" + matcher.group(i));
+				System.out.print("," + matcher.group(i));
 		
 		System.out.println();
 	}
@@ -143,11 +143,11 @@ public class RouterLogParser {
 		
 		Date whenDate = dateInputFormat.parse(when);
 		
-		System.out.print(dateOutputFormat.format(whenDate) + "\tDOS_ATTACK\t" + type);
+		System.out.print(dateOutputFormat.format(whenDate) + ",DOS_ATTACK," + type);
 		
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
-				System.out.print("\t" + matcher.group(i));
+				System.out.print("," + matcher.group(i));
 		
 		System.out.println();
 	}
