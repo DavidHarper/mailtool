@@ -22,13 +22,41 @@
  * the archive of this library for complete text of license.
  */
 
-package com.obliquity.mailtool;
+package com.obliquity.mailtool.routerlogs;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.text.ParseException;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
 
-public interface MessageHandler {
-	public void handleMessage(Message message) throws MessagingException, IOException;
+import com.obliquity.mailtool.MessageHandler;
+
+public class RouterLogMessageHandler implements MessageHandler {
+	private RouterLogParser parser = new RouterLogParser();
+	
+	public void handleMessage(Message message) throws MessagingException, IOException {
+		InputStream is = null;
+		
+		Object content = message.getContent();
+		
+		if (content instanceof Multipart) {
+			Multipart mp = (Multipart)content;
+			
+			Part part = mp.getBodyPart(0);
+			
+			is = part.getInputStream();
+		} else {
+			is = message.getInputStream();
+		}
+
+		try {
+			parser.parseContent(is);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+	}
 }
