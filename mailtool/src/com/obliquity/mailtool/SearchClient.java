@@ -65,6 +65,8 @@ public class SearchClient extends AbstractMailClient {
 	private boolean sort = false;
 	private boolean tabular = false;
 	private Folder copyToFolder = null;
+
+	private MessageHandler messageHandler = null;
 	
 	private static final char TAB = '\t';
 	
@@ -88,6 +90,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean sort = false;
 		String copyToFolderName = null;
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+		String handlerName = null;
 		
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equalsIgnoreCase("-uri"))
@@ -158,6 +161,8 @@ public class SearchClient extends AbstractMailClient {
 				tabular = true;
 			else if (args[i].equalsIgnoreCase("-copyto"))
 				copyToFolderName = args[++i];
+			else if (args[i].equalsIgnoreCase("-handler"))
+				handlerName = args[++i];
 			else if (args[i].equalsIgnoreCase("-help")) {
 				printUsage(System.err, null);
 				System.exit(0);
@@ -215,8 +220,24 @@ public class SearchClient extends AbstractMailClient {
 			printUsage(System.err, "No search terms were specified");
 			System.exit(1);
 		}
-			
-		try {
+		
+		MessageHandler handler = null;
+		
+		if (handlerName != null) {
+			try {
+				Class<?> handlerClass = Class.forName(handlerName);
+
+				Object o = handlerClass.newInstance();
+
+				if (o instanceof MessageHandler)
+					handler = (MessageHandler) o;
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+
+		try {		
 			SearchClient client = new SearchClient(folderURI);
 			
 			client.setRecursive(recursive);
@@ -224,6 +245,9 @@ public class SearchClient extends AbstractMailClient {
 			client.setPurge(purge);
 			client.setSort(sort);
 			client.setTabular(tabular);
+			
+			if (handler != null)
+				client.setHandler(handler);
 			
 			if (copyToFolderName != null)
 				client.setMoveToFolder(copyToFolderName);
@@ -240,16 +264,19 @@ public class SearchClient extends AbstractMailClient {
 		"\t-uri\t\tThe URI of the IMAP server",
 		"",
 		"OPTIONAL ARGUMENTS",
-		"\t-folders\t\tComma-separated list of the folders to be searched",
+		"\t-folders\tComma-separated list of the folders to be searched",
+		"",
 		"\t-recursive\t[BOOLEAN] Search all sub-folders recursively",
 		"",
 		"\t-quiet\t\tDisplay only a summary of the messages",
 		"",
 		"\t-purge\t\t[BOOLEAN] Mark all matching messages for deletion",
 		"",
-		"\t-tabular\t\t[BOOLEAN] Display message headers in tab-separated format",
+		"\t-tabular\t[BOOLEAN] Display message headers in tab-separated format",
 		"",
 		"\t-copyto\t\tCopy all matching messages to the named folder",
+		"",
+		"\t-handler\tName of the class which will process matching messages.",
 		"",
 		"NOTE THAT -purge CANNOT BE USED WITH -recursive",
 		"",
@@ -324,6 +351,10 @@ public class SearchClient extends AbstractMailClient {
 	
 	public boolean isTabular() {
 		return tabular;
+	}
+	
+	public void setHandler(MessageHandler handler) {
+		this.messageHandler = handler;
 	}
 	
 	public void setMoveToFolder(String copyToFolderName) throws MessagingException {
@@ -496,6 +527,8 @@ public class SearchClient extends AbstractMailClient {
 			for (int i = 0; i < messages.length; i++) {
 				if (quiet) {
 					counter++;
+				} else if (messageHandler != null) {
+					messageHandler.handleMessage(messages[i]);
 				} else {
 					if (tabular)
 						displayMessageInTabularFormat(messages[i], System.out);
