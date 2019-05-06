@@ -487,7 +487,7 @@ public class SearchClient extends AbstractMailClient {
 			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
-			if (!tabular)
+			if (!tabular && messageHandler == null)
 				System.out.println("Searching folder " + folder.getFullName() + "\n");
 
 			int type = folder.getType();
