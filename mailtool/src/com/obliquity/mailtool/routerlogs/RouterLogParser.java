@@ -43,10 +43,6 @@ public class RouterLogParser {
 	
 	private final Pattern lanAccessPattern = Pattern.compile(LAN_ACCESS_PATTERN);
 	
-	private static final String DOS_TYPE_PATTERN = "^DoS Attack: (.*)$";
-	
-	private final Pattern dosTypePattern = Pattern.compile(DOS_TYPE_PATTERN);
-	
 	private static final String DOS_ATTACK_PATTERN_1 = "^from source: (\\d+\\.\\d+\\.\\d+\\.\\d+), port (\\d+)$";
 	
 	private final Pattern dosAttackPattern1 = Pattern.compile(DOS_ATTACK_PATTERN_1);
@@ -64,6 +60,8 @@ public class RouterLogParser {
 	private static final String WLAN_ACCESS_REJECTED_PATTERN = "^from MAC address ([0-9:]+)";
 	
 	private final Pattern wlanAccessRejectedPattern = Pattern.compile(WLAN_ACCESS_REJECTED_PATTERN);
+	
+	// [Access Control] Device SONOSZP with MAC address 34:7E:5C:40:A8:F8 is allowed to access the network, Thursday, August 06, 2020 12:39:52
 	
 	private static final String DATE_TIME_INPUT_FORMAT= "MMM d, yyyy HH:mm:ss";
 	
@@ -85,113 +83,134 @@ public class RouterLogParser {
 	
 	public void parseContent(InputStream is) throws IOException, ParseException {
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
-		
+
 		while (true) {
 			String line = br.readLine();
-			
+
 			if (line == null)
 				break;
-			
+
 			line = line.trim();
-			
+
 			if (line.length() == 0)
 				continue;
-			
+
 			Matcher matcher = mainPattern.matcher(line);
-			
+
 			boolean matches = matcher.matches();
-			
+
 			if (matches) {
-				String what = matcher.group(1);
-				
+				String type = matcher.group(1);
+
+				String subtype = null;
+
+				int colonOffset = type.indexOf(':');
+
+				if (colonOffset >= 0) {
+					subtype = type.substring(colonOffset + 1).strip();
+					type = type.substring(0, colonOffset);
+				}
+
 				String where = matcher.group(2);
-				
+
 				String when = matcher.group(3);
 
-				analyseLogEntry(what, where, when);
+				Date whenDate = when == null ? null : dateInputFormat.parse(when);
+
+				analyseLogEntry(type, subtype, where, whenDate);
 			}
 		}
 	}
 	
-	private void analyseLogEntry(String what, String where, String when) throws ParseException {
-		if (what.startsWith("LAN access from remote")) {
+	private void analyseLogEntry(String type, String subtype, String where, Date when) throws ParseException {
+		switch (type) {
+		case "LAN access from remote":
 			analyseLanAccessEntry(where, when);
-		} else if (what.startsWith("DHCP IP:")) {
+			break;
+
+		case "DHCP IP":
 			// Do nothing
-		} else if (what.startsWith("DoS Attack:")) {
-			analyseDosAttackEntry(what, where, when);
-		} else if (what.startsWith("admin login")) {
+			break;
+
+		case "admin login":
 			// Do nothing
-		} else if (what.startsWith("Internet connected")) {
+			break;
+
+		case "DoS Attack":
+			analyseDosAttackEntry(subtype, where, when);
+			break;
+
+		case "Internet connected":
 			analyseInternetConnectedEntry(where, when);
-		} else if (what.startsWith("WLAN access rejected")) {
-			analyseWLANAccessRejectedEntry(what, where, when);
-		} else {
-			System.err.println("UNKNOWN TYPE: " + what + " at " + when);
+			break;
+
+		case "WLAN access rejected":
+			analyseWLANAccessRejectedEntry(subtype, where, when);
+			break;
+
+		case "Access Control":
+			analyseAccessControlEntry(subtype, where, when);
+			break;
+
+		default:
+			System.err.println("UNKNOWN TYPE: " + type + (subtype != null ? " (" + subtype + ")" : "") + " at " + when);
 		}
 	}
 	
-	private void analyseInternetConnectedEntry(String where, String when) throws ParseException {		
+	private void analyseAccessControlEntry(String subtype, String where, Date when) throws ParseException {
+		System.out.print(dateOutputFormat.format(when) + ",ACCESS_CONTROL");
+
+		System.out.println("," + where);
+	}
+	
+	private void analyseInternetConnectedEntry(String where, Date when) throws ParseException {		
 		Matcher matcher = internetConnectedPattern.matcher(where);
-		
-		Date whenDate = dateInputFormat.parse(when);
-		
-		System.out.print(dateOutputFormat.format(whenDate) + ",INTERNET_CONNECTED");
-		
+
+		System.out.print(dateOutputFormat.format(when) + ",INTERNET_CONNECTED");
+
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
 				System.out.print("," + matcher.group(i));
-		
+
 		System.out.println();
 	}
 	
-	private void analyseWLANAccessRejectedEntry(String what, String where, String when) throws ParseException {
+	private void analyseWLANAccessRejectedEntry(String subtype, String where, Date when) throws ParseException {
 		Matcher matcher = wlanAccessRejectedPattern.matcher(where);
-				
-		Date whenDate = dateInputFormat.parse(when);
-		
-		System.out.print(dateOutputFormat.format(whenDate) + ",WLAN_ACCESS_REJECTED," + what);
-		
+
+		System.out.print(dateOutputFormat.format(when) + ",WLAN_ACCESS_REJECTED," + subtype);
+
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
 				System.out.print("," + matcher.group(i));
-		
+
 		System.out.println();
 	}
 
-	private void analyseLanAccessEntry(String where, String when) throws ParseException {		
+	private void analyseLanAccessEntry(String where, Date when) throws ParseException {		
 		Matcher matcher = lanAccessPattern.matcher(where);
-		
-		Date whenDate = dateInputFormat.parse(when);
-		
-		System.out.print(dateOutputFormat.format(whenDate) + ",LAN_ACCESS");
-		
+
+		System.out.print(dateOutputFormat.format(when) + ",LAN_ACCESS");
+
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
 				System.out.print("," + matcher.group(i));
-		
+
 		System.out.println();
 	}
 	
-	private void analyseDosAttackEntry(String what, String where, String when) throws ParseException {
-		Matcher matcher = dosTypePattern.matcher(what);
-		
-		String type = matcher.matches() ? matcher.group(1) : "UNKNOWN";
-		
-		matcher = dosAttackPattern1.matcher(where);
-		
+	private void analyseDosAttackEntry(String subtype, String where, Date when) throws ParseException {		
+		Matcher matcher = dosAttackPattern1.matcher(where);
+
 		if (!matcher.matches())
 			matcher = dosAttackPattern2.matcher(where);
-		
-		Date whenDate = dateInputFormat.parse(when);
-		
-		System.out.print(dateOutputFormat.format(whenDate) + ",DOS_ATTACK," + type);
-		
+
+		System.out.print(dateOutputFormat.format(when) + ",DOS_ATTACK," + subtype);
+
 		if (matcher.matches())
 			for (int i = 1; i <= matcher.groupCount(); i++)
 				System.out.print("," + matcher.group(i));
-		
+
 		System.out.println();
 	}
-
 }
