@@ -55,6 +55,16 @@ public class RouterLogParser {
 	
 	private final Pattern dosAttackPattern2 = Pattern.compile(DOS_ATTACK_PATTERN_2);
 	
+	// [Internet connected] IP address: 82.14.254.192, Thursday, September 24, 2020 13:30:59
+	private static final String INTERNET_CONNECTED_PATTERN = "^IP address: (\\d+\\.\\d+\\.\\d+\\.\\d+)$";
+	
+	private final Pattern internetConnectedPattern = Pattern.compile(INTERNET_CONNECTED_PATTERN);
+	
+	// [WLAN access rejected: incorrect security] from MAC address 00:03:93:ed:5d:38, Monday, June 08, 2020 09:02:40
+	private static final String WLAN_ACCESS_REJECTED_PATTERN = "^from MAC address ([0-9:]+)";
+	
+	private final Pattern wlanAccessRejectedPattern = Pattern.compile(WLAN_ACCESS_REJECTED_PATTERN);
+	
 	private static final String DATE_TIME_INPUT_FORMAT= "MMM d, yyyy HH:mm:ss";
 	
 	private final SimpleDateFormat dateInputFormat = new SimpleDateFormat(DATE_TIME_INPUT_FORMAT);
@@ -112,11 +122,43 @@ public class RouterLogParser {
 			analyseDosAttackEntry(what, where, when);
 		} else if (what.startsWith("admin login")) {
 			// Do nothing
+		} else if (what.startsWith("Internet connected")) {
+			analyseInternetConnectedEntry(where, when);
+		} else if (what.startsWith("WLAN access rejected")) {
+			analyseWLANAccessRejectedEntry(what, where, when);
 		} else {
-			System.err.println("UNKNOWN TYPE: " + what);
+			System.err.println("UNKNOWN TYPE: " + what + " at " + when);
 		}
 	}
 	
+	private void analyseInternetConnectedEntry(String where, String when) throws ParseException {		
+		Matcher matcher = internetConnectedPattern.matcher(where);
+		
+		Date whenDate = dateInputFormat.parse(when);
+		
+		System.out.print(dateOutputFormat.format(whenDate) + ",INTERNET_CONNECTED");
+		
+		if (matcher.matches())
+			for (int i = 1; i <= matcher.groupCount(); i++)
+				System.out.print("," + matcher.group(i));
+		
+		System.out.println();
+	}
+	
+	private void analyseWLANAccessRejectedEntry(String what, String where, String when) throws ParseException {
+		Matcher matcher = wlanAccessRejectedPattern.matcher(where);
+				
+		Date whenDate = dateInputFormat.parse(when);
+		
+		System.out.print(dateOutputFormat.format(whenDate) + ",WLAN_ACCESS_REJECTED," + what);
+		
+		if (matcher.matches())
+			for (int i = 1; i <= matcher.groupCount(); i++)
+				System.out.print("," + matcher.group(i));
+		
+		System.out.println();
+	}
+
 	private void analyseLanAccessEntry(String where, String when) throws ParseException {		
 		Matcher matcher = lanAccessPattern.matcher(where);
 		
