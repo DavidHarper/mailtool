@@ -115,7 +115,7 @@ public class RouterLogParser {
 				int colonOffset = type.indexOf(':');
 
 				if (colonOffset >= 0) {
-					subtype = type.substring(colonOffset + 1).strip();
+					subtype = type.substring(colonOffset + 1).trim();
 					type = type.substring(0, colonOffset);
 				}
 
