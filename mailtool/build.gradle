@@ -23,8 +23,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.lucee:javamail:1.6.2'
-    implementation 'org.lucee:activation:1.1.1'
+    implementation 'com.sun.mail:javax.mail:1.6.2'
+    implementation 'com.sun.activation:javax.activation:1.2.0'
 }
 
 task extlibs(type: Copy) {
