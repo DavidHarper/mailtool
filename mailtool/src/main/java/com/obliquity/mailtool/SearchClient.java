@@ -26,6 +26,7 @@ package com.obliquity.mailtool;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -227,11 +228,11 @@ public class SearchClient extends AbstractMailClient {
 			try {
 				Class<?> handlerClass = Class.forName(handlerName);
 
-				Object o = handlerClass.newInstance();
+				Object o = handlerClass.getDeclaredConstructor().newInstance();
 
 				if (o instanceof MessageHandler)
 					handler = (MessageHandler) o;
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				e.printStackTrace();
 				System.exit(1);
 			}
