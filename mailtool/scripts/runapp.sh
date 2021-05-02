@@ -16,8 +16,6 @@ fi
 
 SCRIPT_DIR=`dirname $0`
 
-echo "SCRIPT_DIR is ${SCRIPT_DIR}"
-
 BASEDIR=`readlink -f ${SCRIPT_DIR}/..`
 
 CLASSDIR=${BASEDIR}/build/classes/java/main
