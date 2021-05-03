@@ -23,6 +23,7 @@
  */
 package com.obliquity.mailtool.messagehandler;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
@@ -39,21 +40,52 @@ import com.obliquity.mailtool.MessageHandler;
 
 public class DumpPlainTextAttachmentHandler implements MessageHandler {
 	private static final String TEXT_PLAIN_MIME_TYPE = "text/plain";
-	
-	private final PrintStream ps = System.out;
-		
+			
 	private final SimpleDateFormat datefmt = new SimpleDateFormat(
 			"yyyy-MM-dd HH:mm:ss");
+	
+	private File basedir = null;
+	private int fileNumber = 0;
+	
+	public DumpPlainTextAttachmentHandler() {
+		String basedirname = System.clearProperty("com.obliquity.mailtool.mailhandler.dumpplaintextattachmenthandler.basedir");
+		
+		if (basedirname != null) {
+			basedir = new File(basedirname);
+			
+			if (!basedir.exists())
+				basedir.mkdirs();
+		}
+	}
 
 	public void handleMessage(Message message) throws MessagingException, IOException {
 		Part body = getPlainTextAttachment(message);
 		
 		if (body == null)
 			return;
+
+		PrintStream ps = System.out;
 		
-		displayMessageHeaders(message);
+		if (basedir != null) {
+			fileNumber++;
+			
+			String filename = String.format("message%06d.txt", fileNumber);
+			
+			File file = new File(basedir, filename);
+			
+			ps = new PrintStream(file);
+			
+			System.out.println("Creating file " + filename);
+		}
+		
+		displayMessageHeaders(message, ps);
+		
+		ps.println();
 				
 		ps.println(body.getContent().toString());
+		
+		if (basedir != null)
+			ps.close();
 	}
 
 	private Part getPlainTextAttachment(Message message) {
@@ -88,7 +120,7 @@ public class DumpPlainTextAttachmentHandler implements MessageHandler {
 		return null;
 	}
 	
-	private void displayMessageHeaders(Message message) throws MessagingException {
+	private void displayMessageHeaders(Message message, PrintStream ps) throws MessagingException {
 		Date sentDate = message.getSentDate();
 		String subject = message.getSubject();
 		InternetAddress from = (InternetAddress)message.getFrom()[0];
