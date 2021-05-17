@@ -597,11 +597,9 @@ public class SearchClient extends AbstractMailClient {
 				
 				String filename = part.getFileName();
 				
-				if (filename != null) {
-					ps.print(TAB);
+				ps.print(TAB);
 
-					ps.print(j + ":" + part.getContentType() + ":" + part.getSize() + ":" + filename);
-				}
+				ps.print(j + ":" + part.getContentType() + ":" + part.getSize() + ":" + filename);
 			}
 		}
 	}
