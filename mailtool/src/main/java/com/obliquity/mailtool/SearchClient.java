@@ -42,6 +42,7 @@ import javax.mail.Store;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.mail.search.AndTerm;
 import javax.mail.search.DateTerm;
 import javax.mail.search.FlagTerm;
@@ -556,18 +557,22 @@ public class SearchClient extends AbstractMailClient {
 	
 	private void displayMessageInTabularFormat(Message message, PrintStream ps) throws MessagingException {
 		InternetAddress from = (InternetAddress)message.getFrom()[0];
-		InternetAddress to = (InternetAddress)message.getAllRecipients()[0];
+		Address[] to_list = message.getAllRecipients();
+		InternetAddress to = to_list == null ? null : (InternetAddress)to_list[0];
 		Date sentDate = message.getSentDate();
 		String subject = message.getSubject();
 		String folderName = message.getFolder().getFullName();
+		int size = (message instanceof MimeMessage) ? ((MimeMessage)message).getSize() : -1;
 		
 		ps.print(folderName);
 		ps.print(TAB);
 		ps.print(from.getAddress());
 		ps.print(TAB);
-		ps.print(to.getAddress());
+		ps.print(to == null ? "NULL" : to.getAddress());
 		ps.print(TAB);
 		ps.print(sentDate != null ? datefmt.format(sentDate) : "NULL");
+		ps.print(TAB);
+		ps.print(size);
 		ps.print(TAB);
 		ps.print(subject);
 		ps.println();
