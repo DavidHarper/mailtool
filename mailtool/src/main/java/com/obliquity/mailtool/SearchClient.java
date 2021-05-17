@@ -38,6 +38,8 @@ import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
 import javax.mail.Store;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
@@ -555,7 +557,7 @@ public class SearchClient extends AbstractMailClient {
 	private final SimpleDateFormat datefmt = new SimpleDateFormat(
 			"yyyy-MM-dd HH:mm:ss");
 	
-	private void displayMessageInTabularFormat(Message message, PrintStream ps) throws MessagingException {
+	private void displayMessageInTabularFormat(Message message, PrintStream ps) throws MessagingException, IOException {
 		InternetAddress from = (InternetAddress)message.getFrom()[0];
 		Address[] to_list = message.getAllRecipients();
 		InternetAddress to = to_list == null ? null : (InternetAddress)to_list[0];
@@ -575,7 +577,33 @@ public class SearchClient extends AbstractMailClient {
 		ps.print(size);
 		ps.print(TAB);
 		ps.print(subject);
+		
+		if (message instanceof MimeMessage)
+			displayAttachmentsInTabularFormat((MimeMessage)message, ps);
+		
 		ps.println();
+	}
+	
+	private void displayAttachmentsInTabularFormat(MimeMessage message, PrintStream ps) throws MessagingException, IOException {
+		Object content = message.getContent();
+		
+		if (content instanceof Multipart) {
+			Multipart mp = (Multipart)content;
+			
+			int parts = mp.getCount();
+			
+			for (int j = 0; j < parts; j++) {
+				Part part = mp.getBodyPart(j);
+				
+				String filename = part.getFileName();
+				
+				if (filename != null) {
+					ps.print(TAB);
+
+					ps.print(j + ":" + part.getContentType() + ":" + part.getSize() + ":" + filename);
+				}
+			}
+		}
 	}
 	
 	private void processSubFolders(Folder folder, SearchTerm term)
