@@ -16,7 +16,7 @@ fi
 
 SCRIPT_DIR=`dirname $0`
 
-BASEDIR=`readlink -f ${SCRIPT_DIR}/..`
+BASEDIR="${SCRIPT_DIR}/.."
 
 CLASSDIR=${BASEDIR}/build/classes/java/main
 
