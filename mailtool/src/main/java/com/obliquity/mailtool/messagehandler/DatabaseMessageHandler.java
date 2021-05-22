@@ -193,9 +193,12 @@ public class DatabaseMessageHandler implements MessageHandler {
 				pstmtPutMessage.setNull(3, Types.VARCHAR);
 			else
 				pstmtPutMessage.setString(3, primaryRecipient.getAddress());
-						
-			pstmtPutMessage.setTimestamp(4, new Timestamp(sentDate.getTime()));
-			
+
+			if (sentDate == null)
+				pstmtPutMessage.setNull(4, Types.TIMESTAMP);
+			else
+				pstmtPutMessage.setTimestamp(4, new Timestamp(sentDate.getTime()));
+				
 			pstmtPutMessage.setString(5, subject);
 			
 			pstmtPutMessage.setInt(6, size);
