@@ -39,6 +39,7 @@ import java.util.Map;
 import javax.mail.Address;
 import javax.mail.Folder;
 import javax.mail.Message;
+import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
@@ -52,14 +53,24 @@ import com.obliquity.mailtool.MessageHandler;
 public class DatabaseMessageHandler implements MessageHandler {
 	private Connection conn;
 	private Map<String, Integer> folderIDMap = new HashMap<String, Integer>();
+	private boolean debug = false;
+	private SimpleMessageHandler debugHandler = new SimpleMessageHandler();
 	
 	public DatabaseMessageHandler() throws ClassNotFoundException, DatabaseConnectionManagerException, IOException, SQLException {
 		conn = DatabaseConnectionManager.getConnection(this);
 		prepareStatements();
 		conn.setAutoCommit(false);
+		
+		String debugPropertyName = this.getClass().getName().toLowerCase() + ".debug";
+		
+		debug = Boolean.getBoolean(debugPropertyName);
+		
+		debugHandler.setTabular(true);
+		
+		debugHandler.setPrintStream(System.err);
 	}
 	
-	private PreparedStatement pstmtGetFolderIDbyName, pstmtPutNewFolder, pstmtPutMessage, pstmtPutAttachment;
+	private PreparedStatement pstmtGetFolderIDbyName, pstmtPutNewFolder, pstmtPutMessage, pstmtPutAttachment, pstmtPutRecipient;
 	
 	private void prepareStatements() throws SQLException {
 		String sql = "select id from folder where name = ?";
@@ -77,6 +88,10 @@ public class DatabaseMessageHandler implements MessageHandler {
 		sql = "insert into attachment(message_id, mime_type, filename, `size`) values (?,?,?,?)";
 		
 		pstmtPutAttachment = conn.prepareStatement(sql);
+		
+		sql = "insert into recipient(message_id, address, type) values(?, ?, ?)";
+		
+		pstmtPutRecipient = conn.prepareStatement(sql);
 	}
 	
 	private int getFolderIDbyName(String folderName) throws SQLException {
@@ -119,18 +134,49 @@ public class DatabaseMessageHandler implements MessageHandler {
 		
 		return -1;
 	}
+	
+	private void putRecipients(int messageID, Address[] recipients, String recipientType) throws SQLException {
+		if (recipients == null)
+			return;
+		
+		for (Address address : recipients) {
+			pstmtPutRecipient.setInt(1, messageID);
+			
+			pstmtPutRecipient.setString(2, ((InternetAddress)address).getAddress());
+			
+			pstmtPutRecipient.setString(3, recipientType);
+			
+			pstmtPutRecipient.executeUpdate();
+		}
+	}
 
 	@Override
 	public void handleMessage(Message message) throws MessagingException, IOException {
+		if (debug)
+			debugHandler.handleMessage(message);
+		
 		try {
 			Folder folder = message.getFolder();
 			
 			int folderID = getFolderIDbyName(folder.getFullName());
 			
-			InternetAddress from = (InternetAddress)message.getFrom()[0];
+			Address[] from_list = message.getFrom();
 			
-			Address[] to_list = message.getAllRecipients();
-			InternetAddress to = to_list == null ? null : (InternetAddress)to_list[0];
+			InternetAddress from = from_list == null ? null : ((InternetAddress[])from_list)[0];
+			
+			Address[] toRecipients = message.getRecipients(RecipientType.TO);
+			
+			Address[] ccRecipients = message.getRecipients(RecipientType.CC);
+			
+			Address[] bccRecipients = message.getRecipients(RecipientType.BCC);
+			
+			InternetAddress primaryRecipient = null;
+			
+			if (toRecipients != null)
+				primaryRecipient = (InternetAddress) toRecipients[0];
+			
+			if (primaryRecipient == null && ccRecipients != null)
+				primaryRecipient = (InternetAddress) ccRecipients[0];
 			
 			Date sentDate = message.getSentDate();
 			
@@ -142,10 +188,10 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			pstmtPutMessage.setString(2, from.getAddress());
 			
-			if (to == null)
+			if (primaryRecipient == null)
 				pstmtPutMessage.setNull(3, Types.VARCHAR);
 			else
-				pstmtPutMessage.setString(3, to.getAddress());
+				pstmtPutMessage.setString(3, primaryRecipient.getAddress());
 						
 			pstmtPutMessage.setTimestamp(4, new Timestamp(sentDate.getTime()));
 			
@@ -168,6 +214,12 @@ public class DatabaseMessageHandler implements MessageHandler {
 			}
 			
 			Object content = message.getContent();
+			
+			putRecipients(messageID, toRecipients, "TO");
+			
+			putRecipients(messageID, ccRecipients, "CC");
+			
+			putRecipients(messageID, bccRecipients, "BCC");
 			
 			if (content instanceof Multipart) {
 				Multipart mp = (Multipart)content;
@@ -200,10 +252,19 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			conn.commit();
 		} catch (SQLException e) {
-			throw new MessagingException("A database exception occurred", e);
+			if (!debug)
+				debugHandler.handleMessage(message);
+			
+			e.printStackTrace();
+			
+			try {
+				if (!conn.isValid(5)) {
+					System.err.println("The database connection is no longer valid.  Bailing out.");
+					System.exit(1);
+				}
+			} catch (SQLException e2) {
+				throw new MessagingException("An SQLException occurred whilst handling a previous SQLException", e2);
+			}
 		}
-		
-		
 	}
-
 }
