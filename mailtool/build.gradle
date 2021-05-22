@@ -25,6 +25,7 @@ repositories {
 dependencies {
     implementation 'com.sun.mail:javax.mail:1.6.2'
     implementation 'com.sun.activation:javax.activation:1.2.0'
+	implementation 'mysql:mysql-connector-java:5.1.49'
 }
 
 task extlibs(type: Copy) {
