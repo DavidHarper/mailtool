@@ -140,13 +140,15 @@ public class DatabaseMessageHandler implements MessageHandler {
 			return;
 		
 		for (Address address : recipients) {
-			pstmtPutRecipient.setInt(1, messageID);
+			if (address != null) {
+				pstmtPutRecipient.setInt(1, messageID);
 			
-			pstmtPutRecipient.setString(2, ((InternetAddress)address).getAddress());
+				pstmtPutRecipient.setString(2, ((InternetAddress)address).getAddress());
 			
-			pstmtPutRecipient.setString(3, recipientType);
+				pstmtPutRecipient.setString(3, recipientType);
 			
-			pstmtPutRecipient.executeUpdate();
+				pstmtPutRecipient.executeUpdate();
+			}
 		}
 	}
 
@@ -172,11 +174,15 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			InternetAddress primaryRecipient = null;
 			
-			if (toRecipients != null)
+			if (toRecipients != null) {
 				primaryRecipient = (InternetAddress) toRecipients[0];
+				toRecipients[0] = null;
+			}
 			
-			if (primaryRecipient == null && ccRecipients != null)
+			if (primaryRecipient == null && ccRecipients != null) {
 				primaryRecipient = (InternetAddress) ccRecipients[0];
+				ccRecipients[0] = null;
+			}
 			
 			Date sentDate = message.getSentDate();
 			
