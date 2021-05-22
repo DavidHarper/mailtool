@@ -90,7 +90,9 @@ public abstract class AbstractMailClient {
 		    props.setProperty("mail.imap.ssl.socketFactory.fallback", "false");
 
 		}
-				
+		
+		props.put("mail.mime.allowutf8", true);
+		
 		Session session = Session.getInstance(props, auth);
 
 		boolean debug = Boolean.getBoolean("mail.debug");
