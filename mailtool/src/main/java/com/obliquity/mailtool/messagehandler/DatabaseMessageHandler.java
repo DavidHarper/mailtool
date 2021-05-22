@@ -40,6 +40,8 @@ import javax.mail.Address;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
@@ -50,7 +52,6 @@ import com.obliquity.mailtool.MessageHandler;
 public class DatabaseMessageHandler implements MessageHandler {
 	private Connection conn;
 	private Map<String, Integer> folderIDMap = new HashMap<String, Integer>();
-	private SimpleMessageHandler simpleHandler = new SimpleMessageHandler();
 	
 	public DatabaseMessageHandler() throws ClassNotFoundException, DatabaseConnectionManagerException, IOException, SQLException {
 		conn = DatabaseConnectionManager.getConnection(this);
@@ -58,7 +59,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 		conn.setAutoCommit(false);
 	}
 	
-	private PreparedStatement pstmtGetFolderIDbyName, pstmtPutNewFolder, pstmtPutMessage;
+	private PreparedStatement pstmtGetFolderIDbyName, pstmtPutNewFolder, pstmtPutMessage, pstmtPutAttachment;
 	
 	private void prepareStatements() throws SQLException {
 		String sql = "select id from folder where name = ?";
@@ -72,6 +73,10 @@ public class DatabaseMessageHandler implements MessageHandler {
 		sql = "insert into message(folder_id, `from`, `to`, sent_date, subject, `size`) values (?,?,?,?,?,?)";
 		
 		pstmtPutMessage = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+		
+		sql = "insert into attachment(message_id, mime_type, filename, `size`) values (?,?,?,?)";
+		
+		pstmtPutAttachment = conn.prepareStatement(sql);
 	}
 	
 	private int getFolderIDbyName(String folderName) throws SQLException {
@@ -117,8 +122,6 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	@Override
 	public void handleMessage(Message message) throws MessagingException, IOException {
-		simpleHandler.handleMessage(message);
-		
 		try {
 			Folder folder = message.getFolder();
 			
@@ -162,6 +165,31 @@ public class DatabaseMessageHandler implements MessageHandler {
 				messageID = rs.getInt(1);
 				
 				rs.close();
+			}
+			
+			Object content = message.getContent();
+			
+			if (content instanceof Multipart) {
+				Multipart mp = (Multipart)content;
+				
+				int parts = mp.getCount();
+				
+				for (int j = 0; j < parts; j++) {
+					Part part = mp.getBodyPart(j);
+					
+					String contentType = part.getContentType();
+					
+					String filename = part.getFileName();
+					
+					size = part.getSize();
+					
+					pstmtPutAttachment.setInt(1, messageID);
+					pstmtPutAttachment.setString(2, contentType);
+					pstmtPutAttachment.setString(3, filename);
+					pstmtPutAttachment.setInt(4, size);
+					
+					pstmtPutAttachment.executeUpdate();
+				}
 			}
 			
 			conn.commit();
