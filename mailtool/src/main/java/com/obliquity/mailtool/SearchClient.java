@@ -38,13 +38,10 @@ import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
 import javax.mail.Store;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 import javax.mail.search.AndTerm;
 import javax.mail.search.DateTerm;
 import javax.mail.search.FlagTerm;
@@ -55,6 +52,9 @@ import javax.mail.search.RecipientTerm;
 import javax.mail.search.SearchTerm;
 import javax.mail.search.SentDateTerm;
 import javax.mail.search.SubjectTerm;
+
+import com.obliquity.mailtool.messagehandler.SimpleMessageHandler;
+
 import javax.mail.search.SizeTerm;
 
 
@@ -67,12 +67,9 @@ public class SearchClient extends AbstractMailClient {
 	private boolean purge = false;
 	private boolean quiet = false;
 	private boolean sort = false;
-	private boolean tabular = false;
 	private Folder copyToFolder = null;
 
 	private MessageHandler messageHandler = null;
-	
-	private static final char TAB = '\t';
 	
 	public static void main(String[] args) {
 		String folderURI = null;
@@ -239,7 +236,8 @@ public class SearchClient extends AbstractMailClient {
 				e.printStackTrace();
 				System.exit(1);
 			}
-		}
+		} else if (!quiet)
+			handler = new SimpleMessageHandler();
 
 		try {		
 			SearchClient client = new SearchClient(folderURI);
@@ -248,8 +246,10 @@ public class SearchClient extends AbstractMailClient {
 			client.setQuiet(quiet);
 			client.setPurge(purge);
 			client.setSort(sort);
-			client.setTabular(tabular);
 			
+			if (tabular && handler instanceof SimpleMessageHandler)
+				((SimpleMessageHandler)handler).setTabular(true);
+							
 			if (handler != null)
 				client.setHandler(handler);
 			
@@ -272,7 +272,7 @@ public class SearchClient extends AbstractMailClient {
 		"",
 		"\t-recursive\t[BOOLEAN] Search all sub-folders recursively",
 		"",
-		"\t-quiet\t\tDisplay only a summary of the messages",
+		"\t-quiet\t\t[BOOLEAN] Display only a summary of the messages",
 		"",
 		"\t-purge\t\t[BOOLEAN] Mark all matching messages for deletion",
 		"",
@@ -280,7 +280,7 @@ public class SearchClient extends AbstractMailClient {
 		"",
 		"\t-copyto\t\tCopy all matching messages to the named folder",
 		"",
-		"\t-handler\tName of the class which will process matching messages.",
+		"\t-handler\tName of the class which will process matching messages [default: com.obliquity.mailtool.messagehandler.SimpleMessageHandler]",
 		"",
 		"NOTE THAT -purge CANNOT BE USED WITH -recursive",
 		"",
@@ -348,15 +348,7 @@ public class SearchClient extends AbstractMailClient {
 	public boolean isSort() {
 		return sort;
 	}
-	
-	public void setTabular(boolean tabular) {
-		this.tabular = tabular;
-	}
-	
-	public boolean isTabular() {
-		return tabular;
-	}
-	
+
 	public void setHandler(MessageHandler handler) {
 		this.messageHandler = handler;
 	}
@@ -491,7 +483,7 @@ public class SearchClient extends AbstractMailClient {
 			throw new Exception("The purge and recursive options are mutually exclusive, to avoid disasters!");
 		
 		try {
-			if (!tabular && messageHandler == null)
+			if (!quiet && messageHandler == null)
 				System.out.println("Searching folder " + folder.getFullName() + "\n");
 
 			int type = folder.getType();
@@ -534,13 +526,9 @@ public class SearchClient extends AbstractMailClient {
 				} else if (messageHandler != null) {
 					messageHandler.handleMessage(messages[i]);
 				} else {
-					if (tabular)
-						displayMessageInTabularFormat(messages[i], System.out);
-					else {
-						System.out.println("Message " + i + ":");
-						displayMessage(messages[i], System.out);
-						System.out.println();
-					}
+					System.out.println("Message " + i + ":");
+					displayMessage(messages[i], System.out);
+					System.out.println();
 				}
 				
 				if (purge)
@@ -552,56 +540,6 @@ public class SearchClient extends AbstractMailClient {
 		
 		if (quiet)
 			System.out.println("Messages " + (purge ? "purged" : "found") + " : " + counter);
-	}
-	
-	private final SimpleDateFormat datefmt = new SimpleDateFormat(
-			"yyyy-MM-dd HH:mm:ss");
-	
-	private void displayMessageInTabularFormat(Message message, PrintStream ps) throws MessagingException, IOException {
-		InternetAddress from = (InternetAddress)message.getFrom()[0];
-		Address[] to_list = message.getAllRecipients();
-		InternetAddress to = to_list == null ? null : (InternetAddress)to_list[0];
-		Date sentDate = message.getSentDate();
-		String subject = message.getSubject();
-		String folderName = message.getFolder().getFullName();
-		int size = (message instanceof MimeMessage) ? ((MimeMessage)message).getSize() : -1;
-		
-		ps.print(folderName);
-		ps.print(TAB);
-		ps.print(from.getAddress());
-		ps.print(TAB);
-		ps.print(to == null ? "NULL" : to.getAddress());
-		ps.print(TAB);
-		ps.print(sentDate != null ? datefmt.format(sentDate) : "NULL");
-		ps.print(TAB);
-		ps.print(size);
-		ps.print(TAB);
-		ps.print(subject);
-		
-		if (message instanceof MimeMessage)
-			displayAttachmentsInTabularFormat((MimeMessage)message, ps);
-		
-		ps.println();
-	}
-	
-	private void displayAttachmentsInTabularFormat(MimeMessage message, PrintStream ps) throws MessagingException, IOException {
-		Object content = message.getContent();
-		
-		if (content instanceof Multipart) {
-			Multipart mp = (Multipart)content;
-			
-			int parts = mp.getCount();
-			
-			for (int j = 0; j < parts; j++) {
-				Part part = mp.getBodyPart(j);
-				
-				String filename = part.getFileName();
-				
-				ps.print(TAB);
-
-				ps.print(j + ":" + part.getContentType() + ":" + part.getSize() + ":" + filename);
-			}
-		}
 	}
 	
 	private void processSubFolders(Folder folder, SearchTerm term)
