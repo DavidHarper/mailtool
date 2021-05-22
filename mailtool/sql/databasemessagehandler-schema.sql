@@ -20,12 +20,17 @@
 -- See the COPYING file located in the top-level-directory of
 -- the archive of this library for complete text of license.
 
+DROP TABLE IF EXISTS recipient;
+DROP TABLE IF EXISTS attachment;
+DROP TABLE IF EXISTS message;
+DROP TABLE IF EXISTS folder;
+
 CREATE TABLE `folder` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `message` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -38,7 +43,7 @@ CREATE TABLE `message` (
   PRIMARY KEY (`id`),
   KEY `folder_id` (`folder_id`),
   CONSTRAINT `message_ibfk_1` FOREIGN KEY (`folder_id`) REFERENCES `folder` (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `attachment` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -49,4 +54,14 @@ CREATE TABLE `attachment` (
   PRIMARY KEY (`id`),
   KEY `message_id` (`message_id`),
   CONSTRAINT `attachment_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `message` (`id`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `recipient` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `message_id` int(10) unsigned NOT NULL,
+  `type` enum('TO','CC','BCC') NOT NULL,
+  `address` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `message_id` (`message_id`),
+  CONSTRAINT `recipient_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `message` (`id`)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
