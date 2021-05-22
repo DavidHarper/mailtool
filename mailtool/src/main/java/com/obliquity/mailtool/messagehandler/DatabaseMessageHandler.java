@@ -179,11 +179,6 @@ public class DatabaseMessageHandler implements MessageHandler {
 				toRecipients[0] = null;
 			}
 			
-			if (primaryRecipient == null && ccRecipients != null) {
-				primaryRecipient = (InternetAddress) ccRecipients[0];
-				ccRecipients[0] = null;
-			}
-			
 			Date sentDate = message.getSentDate();
 			
 			String subject = message.getSubject();
