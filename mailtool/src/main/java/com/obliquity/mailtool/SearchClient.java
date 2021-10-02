@@ -90,7 +90,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean quiet = false;
 		boolean sort = false;
 		String copyToFolderName = null;
-		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 		String handlerName = null;
 		
 		for (int i = 0; i < args.length; i++) {
@@ -292,8 +292,8 @@ public class SearchClient extends AbstractMailClient {
 		"",
 		"\t-subject\tShow only messages with this subject",
 		"",
-		"\t-after\t\tShow only messages sent on or after this date",
-		"\t-before\t\tShow only messages sent on or before this date",
+		"\t-after\t\tShow only messages sent on or after this date and time",
+		"\t-before\t\tShow only messages sent on or before this date and time",
 		"",
 		"\t-older\t\tOnly show messages which are older than this number of days",
 		"\t-newer\t\tonly show messages which are newer than this number of days",
