@@ -5,12 +5,14 @@ group = 'com.obliquity.mailtool'
 
 version = '1.0'
 
-sourceCompatibility = '1.8'
+sourceCompatibility = '16'
 
 jar {
     manifest {
         attributes "Main-Class": "com.obliquity.mailtool.ListFolders"
     }
+    
+    duplicatesStrategy 'exclude'
  
     from {
         configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
@@ -25,7 +27,7 @@ repositories {
 dependencies {
     implementation 'com.sun.mail:javax.mail:1.6.2'
     implementation 'com.sun.activation:javax.activation:1.2.0'
-	implementation 'mysql:mysql-connector-java:5.1.49'
+    implementation 'mysql:mysql-connector-java:8.0.26'
 }
 
 task extlibs(type: Copy) {
