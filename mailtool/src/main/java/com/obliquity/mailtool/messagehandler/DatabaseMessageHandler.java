@@ -187,7 +187,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			pstmtPutMessage.setInt(1, folderID);
 			
-			pstmtPutMessage.setString(2, from.getAddress());
+			pstmtPutMessage.setString(2, from == null ? "NULL" : from.getAddress());
 			
 			if (primaryRecipient == null)
 				pstmtPutMessage.setNull(3, Types.VARCHAR);
