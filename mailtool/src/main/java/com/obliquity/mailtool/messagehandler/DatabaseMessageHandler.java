@@ -53,6 +53,7 @@ import com.obliquity.mailtool.MessageHandler;
 public class DatabaseMessageHandler implements MessageHandler {
 	private Connection conn;
 	private Map<String, Integer> folderIDMap = new HashMap<String, Integer>();
+	private Map<String, Integer> addressIDMap = new HashMap<String, Integer>();
 	private boolean debug = false;
 	private SimpleMessageHandler debugHandler = new SimpleMessageHandler();
 	
@@ -71,6 +72,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 	}
 	
 	private PreparedStatement pstmtGetFolderIDbyName, pstmtPutNewFolder, pstmtPutMessage, pstmtPutAttachment, pstmtPutRecipient;
+	private PreparedStatement pstmtGetAddressIDbyName, pstmtPutNewAddress;
 	
 	private void prepareStatements() throws SQLException {
 		String sql = "select id from folder where name = ?";
@@ -81,7 +83,15 @@ public class DatabaseMessageHandler implements MessageHandler {
 		
 		pstmtPutNewFolder = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
-		sql = "insert into message(folder_id, `from`, `to`, sent_date, subject, `size`) values (?,?,?,?,?,?)";
+		sql = "select id from address where address = ?";
+		
+		pstmtGetAddressIDbyName = conn.prepareStatement(sql);
+		
+		sql = "insert into address(address) values (?)";
+		
+		pstmtPutNewAddress = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+		
+		sql = "insert into message(folder_id, `from`, sent_date, subject, `size`) values (?,?,?,?,?)";
 		
 		pstmtPutMessage = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
@@ -89,7 +99,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 		
 		pstmtPutAttachment = conn.prepareStatement(sql);
 		
-		sql = "insert into recipient(message_id, address, type) values(?, ?, ?)";
+		sql = "insert into recipient(message_id, address_id, type) values(?, ?, ?)";
 		
 		pstmtPutRecipient = conn.prepareStatement(sql);
 	}
@@ -135,6 +145,47 @@ public class DatabaseMessageHandler implements MessageHandler {
 		return -1;
 	}
 	
+	private int getAddressIDbyName(String address) throws SQLException {
+		if (addressIDMap.containsKey(address))
+			return addressIDMap.get(address);
+		
+		pstmtGetAddressIDbyName.setString(1, address);
+		
+		ResultSet rs = pstmtGetAddressIDbyName.executeQuery();
+		
+		if (rs.next()) {
+			int addressID = rs.getInt(1);
+			
+			rs.close();
+			
+			addressIDMap.put(address, addressID);
+			
+			return addressID;
+		}
+		
+		pstmtPutNewAddress.setString(1, address);
+		
+		int rows = pstmtPutNewAddress.executeUpdate();
+		
+		if (rows == 1) {
+			rs = pstmtPutNewAddress.getGeneratedKeys();
+			
+			rs.next();
+			
+			int addressID = rs.getInt(1);
+			
+			rs.close();
+			
+			addressIDMap.put(address, addressID);
+			
+			conn.commit();
+			
+			return addressID;
+		}
+		
+		return -1;
+	}
+	
 	private void putRecipients(int messageID, Address[] recipients, String recipientType) throws SQLException {
 		if (recipients == null)
 			return;
@@ -142,8 +193,10 @@ public class DatabaseMessageHandler implements MessageHandler {
 		for (Address address : recipients) {
 			if (address != null) {
 				pstmtPutRecipient.setInt(1, messageID);
+				
+				int addressID = getAddressIDbyName(((InternetAddress)address).getAddress());
 			
-				pstmtPutRecipient.setString(2, ((InternetAddress)address).getAddress());
+				pstmtPutRecipient.setInt(2, addressID);
 			
 				pstmtPutRecipient.setString(3, recipientType);
 			
@@ -172,13 +225,6 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			Address[] bccRecipients = message.getRecipients(RecipientType.BCC);
 			
-			InternetAddress primaryRecipient = null;
-			
-			if (toRecipients != null) {
-				primaryRecipient = (InternetAddress) toRecipients[0];
-				toRecipients[0] = null;
-			}
-			
 			Date sentDate = message.getSentDate();
 			
 			String subject = message.getSubject();
@@ -188,20 +234,15 @@ public class DatabaseMessageHandler implements MessageHandler {
 			pstmtPutMessage.setInt(1, folderID);
 			
 			pstmtPutMessage.setString(2, from == null ? "NULL" : from.getAddress());
-			
-			if (primaryRecipient == null)
-				pstmtPutMessage.setNull(3, Types.VARCHAR);
-			else
-				pstmtPutMessage.setString(3, primaryRecipient.getAddress());
 
 			if (sentDate == null)
-				pstmtPutMessage.setNull(4, Types.TIMESTAMP);
+				pstmtPutMessage.setNull(3, Types.TIMESTAMP);
 			else
-				pstmtPutMessage.setTimestamp(4, new Timestamp(sentDate.getTime()));
+				pstmtPutMessage.setTimestamp(3, new Timestamp(sentDate.getTime()));
 				
-			pstmtPutMessage.setString(5, subject);
+			pstmtPutMessage.setString(4, subject);
 			
-			pstmtPutMessage.setInt(6, size);
+			pstmtPutMessage.setInt(5, size);
 			
 			int rows = pstmtPutMessage.executeUpdate();
 			

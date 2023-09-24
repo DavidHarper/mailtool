@@ -1,0 +1,4 @@
+url=jdbc:mysql://localhost/MAILTOOL
+username=mailtool
+password=p0stmanp4t
+driver=com.mysql.jdbc.Driver
