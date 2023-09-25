@@ -105,82 +105,50 @@ public class DatabaseMessageHandler implements MessageHandler {
 	}
 	
 	private int getFolderIDbyName(String folderName) throws SQLException {
-		if (folderIDMap.containsKey(folderName))
-			return folderIDMap.get(folderName);
-		
-		pstmtGetFolderIDbyName.setString(1, folderName);
-		
-		ResultSet rs = pstmtGetFolderIDbyName.executeQuery();
-		
-		if (rs.next()) {
-			int folderID = rs.getInt(1);
-			
-			rs.close();
-			
-			folderIDMap.put(folderName, folderID);
-			
-			return folderID;
-		}
-		
-		pstmtPutNewFolder.setString(1, folderName);
-		
-		int rows = pstmtPutNewFolder.executeUpdate();
-		
-		if (rows == 1) {
-			rs = pstmtPutNewFolder.getGeneratedKeys();
-			
-			rs.next();
-			
-			int folderID = rs.getInt(1);
-			
-			rs.close();
-			
-			folderIDMap.put(folderName, folderID);
-			
-			conn.commit();
-			
-			return folderID;
-		}
-		
-		return -1;
+		return findOrSetIDbyName(pstmtGetFolderIDbyName, pstmtPutNewFolder, folderIDMap, folderName);
+	}
+
+	private int getAddressIDbyName(String address) throws SQLException {
+		return findOrSetIDbyName(pstmtGetAddressIDbyName, pstmtPutNewAddress, addressIDMap, address);
 	}
 	
-	private int getAddressIDbyName(String address) throws SQLException {
-		if (addressIDMap.containsKey(address))
-			return addressIDMap.get(address);
+	private int findOrSetIDbyName(PreparedStatement pstmtLookup, PreparedStatement pstmtSave, Map<String, Integer> nameToIDmap, String name)
+			throws SQLException {
+		if (nameToIDmap.containsKey(name))
+			return nameToIDmap.get(name);
 		
-		pstmtGetAddressIDbyName.setString(1, address);
+		pstmtLookup.setString(1, name);
 		
-		ResultSet rs = pstmtGetAddressIDbyName.executeQuery();
+		ResultSet rs = pstmtLookup.executeQuery();
 		
 		if (rs.next()) {
-			int addressID = rs.getInt(1);
+			int ID = rs.getInt(1);
 			
 			rs.close();
 			
-			addressIDMap.put(address, addressID);
+			nameToIDmap.put(name, ID);
 			
-			return addressID;
+			return ID;
 		}
 		
-		pstmtPutNewAddress.setString(1, address);
+		pstmtSave.setString(1, name);
 		
-		int rows = pstmtPutNewAddress.executeUpdate();
+		int rows = pstmtSave.executeUpdate();
 		
 		if (rows == 1) {
-			rs = pstmtPutNewAddress.getGeneratedKeys();
+			rs = pstmtSave.getGeneratedKeys();
 			
 			rs.next();
 			
-			int addressID = rs.getInt(1);
+			int ID = rs.getInt(1);
 			
 			rs.close();
 			
-			addressIDMap.put(address, addressID);
+			nameToIDmap.put(name, ID);
 			
 			conn.commit();
 			
-			return addressID;
+			return ID;
 		}
 		
 		return -1;
