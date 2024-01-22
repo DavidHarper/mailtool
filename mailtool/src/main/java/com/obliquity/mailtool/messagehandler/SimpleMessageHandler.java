@@ -51,6 +51,8 @@ public class SimpleMessageHandler implements MessageHandler {
 	
 	private boolean tabular = false;
 	
+	private boolean showContent = Boolean.getBoolean("com.obliquity.mailtool.messagehandler.simplemessagehandler.showcontent");
+	
 	public void setTabular(boolean tabular) {
 		this.tabular = tabular;
 	}
@@ -171,10 +173,18 @@ public class SimpleMessageHandler implements MessageHandler {
 					Part part = mp.getBodyPart(j);
 					ps.println("\tPart " + j + ": Content-Type=" + part.getContentType() + "; Length=" + part.getSize());
 				}
-
 			}
-		}		
+			
+			if (showContent && content instanceof String) {
+				ps.println(CONTENT_HEADER);
+				ps.print(content);
+				ps.println(CONTENT_TRAILER);
+			}
+		}
 	}
+	
+	private static final String CONTENT_HEADER  = "============================== CONTENT BEGINS ==============================";
+	private static final String CONTENT_TRAILER = "==============================  CONTENT ENDS  ==============================";
 	
 	protected String flagsToString(Message message) throws MessagingException {
 		String str = null;
