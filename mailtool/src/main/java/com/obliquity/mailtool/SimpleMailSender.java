@@ -46,9 +46,9 @@ public class SimpleMailSender {
 		String sender = null;
 		String recipient = null;
 		String smtpHost = null;
-		String filename = null;
+		String plainfilename = null;
+		String htmlfilename = null;
 		String subject = null;
-		boolean attachFile = false;
 		boolean noauth = false;
 		boolean dryRun = false;
 
@@ -75,13 +75,12 @@ public class SimpleMailSender {
 				smtpHost = args[++i];
 				break;
 
-			case "-file":
-				filename = args[++i];
+			case "-plain":
+				plainfilename = args[++i];
 				break;
 
-			case "-attach":
-				filename = args[++i];
-				attachFile = true;
+			case "-html":
+				htmlfilename = args[++i];
 				break;
 				
 			case "-noauth":
@@ -114,7 +113,6 @@ public class SimpleMailSender {
 		props.put("mail.smtp.ssl.protocols", "TLSv1.2");
 
 		Authenticator auth = noauth ? null : new SimpleAuthenticator(user);
-
 		Session session = Session.getDefaultInstance(props, auth);
 
 		try {
@@ -122,39 +120,26 @@ public class SimpleMailSender {
 
 			message.setFrom(new InternetAddress(sender));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
-			message.setSubject(subject == null ? "(No subject)" : subject);
+			message.setSubject(subject);
 			message.setSentDate(new Date());
-			message.setHeader("X-Mailer", "SimpleMailSender");
-
-			String messageText = "Test Mail";
-
-			if (filename != null) {
-				MimeBodyPart mbp1 = new MimeBodyPart();
-				mbp1.setText(messageText);
-
-				MimeBodyPart mbp2 = new MimeBodyPart();
-
-				if (attachFile) {
-					mbp2.attachFile(filename);
-				} else {
-					FileDataSource fds = new FileDataSource(filename) {
-						public String getContentType() {
-							return "text/plain";
-						}
-					};
-
-					mbp2.setDataHandler(new DataHandler(fds));
-					mbp2.setFileName(fds.getName());
-				}
-
-				MimeMultipart mp = new MimeMultipart();
-				mp.addBodyPart(mbp1);
-				mp.addBodyPart(mbp2);
-				message.setContent(mp);
+			message.setHeader("X-Mailer", "SimpleSender");
+			
+			MimeBodyPart plainmbp = (plainfilename == null) ? null : getMimeBodyPart(plainfilename, "text/plain");
+			
+			MimeBodyPart htmlmbp = (htmlfilename == null) ? null : getMimeBodyPart(htmlfilename, "text/html");
+			
+			MimeMultipart mp = null;
+			
+			if (plainmbp != null && htmlmbp != null) {
+				mp = new MimeMultipart("alternative");
+				mp.addBodyPart(plainmbp);
+				mp.addBodyPart(htmlmbp);
 			} else {
-				message.setText(messageText);
+				mp = new MimeMultipart();
+				mp.addBodyPart(plainmbp != null ? plainmbp : htmlmbp);
 			}
 			
+			message.setContent(mp);
 			
 			if (dryRun) {
 				System.out.println("========== MESSAGE BEGINS ==========");
@@ -168,5 +153,19 @@ public class SimpleMailSender {
 		} catch (MessagingException | IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static MimeBodyPart getMimeBodyPart(String filename, String mimetype) throws MessagingException {
+		FileDataSource fds = new FileDataSource(filename) {
+			public String getContentType() {
+				return mimetype;
+			}
+		};
+
+		MimeBodyPart mbp = new MimeBodyPart();
+		mbp.setDataHandler(new DataHandler(fds));
+		mbp.setDisposition(null);
+		
+		return mbp;
 	}
 }
