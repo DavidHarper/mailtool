@@ -123,7 +123,6 @@ public class EnumerateHeaders extends AbstractMailClient {
 	}
 	
 	private void processMessage(Message message, Map<String, Integer> headerMap) throws MessagingException {
-		@SuppressWarnings("unchecked")
 		Enumeration<Header> allHeaders = message.getAllHeaders();
 		
 		while (allHeaders.hasMoreElements()) {
