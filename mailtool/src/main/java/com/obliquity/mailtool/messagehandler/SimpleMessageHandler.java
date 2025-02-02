@@ -84,6 +84,7 @@ public class SimpleMessageHandler implements MessageHandler {
 		String subject = message.getSubject();
 		String folderName = message.getFolder().getFullName();
 		int size = (message instanceof MimeMessage) ? ((MimeMessage)message).getSize() : -1;
+		String msgid = (message instanceof MimeMessage) ? ((MimeMessage)message).getMessageID() : null;
 		
 		ps.print(folderName);
 		ps.print(TAB);
@@ -96,6 +97,8 @@ public class SimpleMessageHandler implements MessageHandler {
 		ps.print(size);
 		ps.print(TAB);
 		ps.print(subject);
+		ps.print(TAB);
+		ps.print(msgid == null ? "NULL" : msgid);
 		
 		if (message instanceof MimeMessage)
 			displayAttachmentsInTabularFormat((MimeMessage)message);
@@ -144,7 +147,14 @@ public class SimpleMessageHandler implements MessageHandler {
 		ps.println("Date:    " + (sentDate != null ? sentDate : 
 			(receivedDate != null ? receivedDate + " [Received]" : "[NO DATES]")));
 		
-		ps.println("Subject: " + message.getSubject());		
+		ps.println("Subject: " + message.getSubject());
+
+		if (message instanceof MimeMessage) {
+			MimeMessage msg = (MimeMessage)message;
+			String msgid = msg.getMessageID();
+			if (msgid != null)
+				ps.println("MsgID:   " + msgid);
+		}
 	}
 
 	protected void displayMessage(Message message) throws MessagingException, IOException {
@@ -180,6 +190,8 @@ public class SimpleMessageHandler implements MessageHandler {
 				ps.print(content);
 				ps.println(CONTENT_TRAILER);
 			}
+
+			ps.println();
 		}
 	}
 	
