@@ -89,6 +89,7 @@ public class SearchClient extends AbstractMailClient {
 		boolean tabular = false;
 		boolean quiet = false;
 		boolean sort = false;
+		boolean digest = false;
 		String copyToFolderName = null;
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 		String handlerName = null;
@@ -156,6 +157,8 @@ public class SearchClient extends AbstractMailClient {
 				quiet = true;
 			else if (args[i].equalsIgnoreCase("-sort"))
 				sort = true;
+			else if (args[i].equalsIgnoreCase("-digest"))
+				digest = true;
 			else if (args[i].equalsIgnoreCase("-purge"))
 				purge = true;
 			else if (args[i].equalsIgnoreCase("-tabular"))
@@ -253,6 +256,9 @@ public class SearchClient extends AbstractMailClient {
 			if (handler != null)
 				client.setHandler(handler);
 			
+			if (digest && handler instanceof SimpleMessageHandler)
+				((SimpleMessageHandler)handler).setShowDigest(true);
+			
 			if (copyToFolderName != null)
 				client.setMoveToFolder(copyToFolderName);
 			
@@ -277,6 +283,8 @@ public class SearchClient extends AbstractMailClient {
 		"\t-purge\t\t[BOOLEAN] Mark all matching messages for deletion",
 		"",
 		"\t-tabular\t[BOOLEAN] Display message headers in tab-separated format",
+		"",
+		"\t-digest\t\t[BOOLEAN] Display the SHA-256 digest of the raw message",
 		"",
 		"\t-copyto\t\tCopy all matching messages to the named folder",
 		"",

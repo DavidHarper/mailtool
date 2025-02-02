@@ -25,7 +25,11 @@
 package com.obliquity.mailtool.messagehandler;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.security.DigestException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -50,6 +54,8 @@ public class SimpleMessageHandler implements MessageHandler {
 			"yyyy-MM-dd HH:mm:ss");
 	
 	private boolean tabular = false;
+	
+	private MessageDigest digest = null;
 	
 	private boolean showContent = Boolean.getBoolean("com.obliquity.mailtool.messagehandler.simplemessagehandler.showcontent");
 	
@@ -156,7 +162,30 @@ public class SimpleMessageHandler implements MessageHandler {
 				ps.println("MsgID:   " + msgid);
 		}
 	}
-
+	
+	protected byte[] messageDigest(MimeMessage msg) throws MessagingException, IOException, DigestException {
+		digest.reset();
+		
+		byte[] buffer = new byte[32768];
+		
+		InputStream is = msg.getRawInputStream();
+		
+		boolean finished = false;
+		
+		while (!finished) {
+			int bytesRead = is.read(buffer);
+			
+			if (bytesRead > 0)
+				digest.update(buffer, 0, bytesRead);
+			else
+				finished = true;
+		}
+		
+		is.close();
+		
+		return digest.digest();
+	}
+	
 	protected void displayMessage(Message message) throws MessagingException, IOException {
 		displayMessageHeaders(message);
 		
@@ -170,6 +199,27 @@ public class SimpleMessageHandler implements MessageHandler {
 			
 			int messageSize = msg.getSize();
 			ps.println("Size:    " + messageSize);
+			
+			if (digest != null) {
+				byte[] bytes = null;
+				
+				try {
+					bytes = messageDigest(msg);
+				} catch (DigestException e) {
+					e.printStackTrace();
+				}
+				
+				ps.print("SHA-256:");
+				
+				for (int i = 0; i < bytes.length; i++) {
+					if ((i%4) == 0)
+						ps.print(' ');
+					
+					ps.printf("%02x", bytes[i]);
+				}
+				
+				ps.println();
+			}
 
 			Object content = message.getContent();
 			
@@ -223,6 +273,15 @@ public class SimpleMessageHandler implements MessageHandler {
 		}
 		
 		return str;
+	}
+
+	public void setShowDigest(boolean b) {
+		try {
+			this.digest = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			System.exit(1);
+		} 
 	}
 
 }
