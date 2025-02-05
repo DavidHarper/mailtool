@@ -24,6 +24,7 @@
 
 package com.obliquity.mailtool;
 
+import java.io.PrintStream;
 import java.net.URISyntaxException;
 
 import javax.mail.Flags;
@@ -46,6 +47,13 @@ public class ListFolders extends AbstractMailClient {
 				counters = true;
 			else if (args[i].equalsIgnoreCase("-sizes"))
 				sizes = true;
+			else if (args[i].equalsIgnoreCase("-help")) {
+				printUsage(System.err, null);
+				System.exit(0);
+			} else {
+				printUsage(System.err, "Unknown option: " + args[i]);
+				System.exit(1);
+			}
 		}
 		
 		if (folderURI ==  null) {
@@ -63,6 +71,24 @@ public class ListFolders extends AbstractMailClient {
 		}
 
 		client.run(counters, sizes);
+	}
+	
+	private static String HELP_TEXT[] = {
+		"MANDATORY ARGUMENTS",
+		"\t-uri\t\tThe URI of the IMAP server",
+		"",
+		"OPTIONAL ARGUMENTS",
+		"\t-sizes\t\t[BOOLEAN] Calculate and display the total size of each folder",
+		"",
+		"\t-counters\t[BOOLEAN] Display the number of messages in each folder"
+	};
+
+	private static void printUsage(PrintStream ps, String message) {
+		if (message != null)
+			ps.println("WARNING: " + message + "\n\n");
+
+		for (int i = 0; i < HELP_TEXT.length; i++)
+			ps.println(HELP_TEXT[i]);
 	}
 
 	private void run(boolean counters, boolean sizes) {
