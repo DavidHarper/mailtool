@@ -47,6 +47,7 @@ import javax.mail.search.DateTerm;
 import javax.mail.search.FlagTerm;
 import javax.mail.search.FromStringTerm;
 import javax.mail.search.FromTerm;
+import javax.mail.search.MessageIDTerm;
 import javax.mail.search.OrTerm;
 import javax.mail.search.RecipientTerm;
 import javax.mail.search.SearchTerm;
@@ -78,6 +79,7 @@ public class SearchClient extends AbstractMailClient {
 		String senderLike = null;
 		String recipient = null;
 		String mimeType = null;
+		String messageid = null;
 		Date after = null;
 		Date before = null;
 		String subject = null;
@@ -106,6 +108,8 @@ public class SearchClient extends AbstractMailClient {
 				recipient = args[++i];
 			else if (args[i].equalsIgnoreCase("-mimetype"))
 				mimeType = args[++i];
+			else if (args[i].equalsIgnoreCase("-messageid"))
+				messageid = args[++i];
 			else if (args[i].equalsIgnoreCase("-after"))
 				try {
 					after = format.parse(args[++i]);
@@ -206,6 +210,9 @@ public class SearchClient extends AbstractMailClient {
 		if (before != null) 
 			term = addDateTerm(term, before, DateTerm.LE);
 		
+		if (messageid != null)
+			term = addMessageIDTerm(term, messageid);
+		
 		if (unread)
 			term = addUnreadTerm(term);
 		
@@ -262,7 +269,7 @@ public class SearchClient extends AbstractMailClient {
 			System.exit(1);
 		}
 	}
-	
+
 	private static String HELP_TEXT[] = {
 		"MANDATORY ARGUMENTS",
 		"\t-uri\t\tThe URI of the IMAP server",
@@ -297,6 +304,8 @@ public class SearchClient extends AbstractMailClient {
 		"",
 		"\t-older\t\tOnly show messages which are older than this number of days",
 		"\t-newer\t\tonly show messages which are newer than this number of days",
+		"",
+		"\t-messageid\tShow only messages with this Message-ID",
 		"",
 		"\t-mimetype\tShow only messages which contain a MIME attachment of this type",
 		"\t-largerthan\tShow only messageslarger than this (in bytes)",
@@ -446,6 +455,12 @@ public class SearchClient extends AbstractMailClient {
 		SizeTerm sizeTerm = new SizeTerm(SizeTerm.GT, largerThan);
 
 		return (term == null) ? sizeTerm : new AndTerm(term, sizeTerm);
+	}
+	
+	private static SearchTerm addMessageIDTerm(SearchTerm term, String messageid) {
+		MessageIDTerm messageIDTerm = new MessageIDTerm(messageid);
+		
+		return (term == null) ? messageIDTerm : new AndTerm(term, messageIDTerm);
 	}
 
 	public void run(String folderName, SearchTerm term) {
