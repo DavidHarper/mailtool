@@ -92,7 +92,6 @@ public class SearchClient extends AbstractMailClient {
 		boolean quiet = false;
 		boolean sort = false;
 		String copyToFolderName = null;
-		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 		String handlerName = null;
 		
 		for (int i = 0; i < args.length; i++) {
@@ -111,17 +110,9 @@ public class SearchClient extends AbstractMailClient {
 			else if (args[i].equalsIgnoreCase("-messageid"))
 				messageid = args[++i];
 			else if (args[i].equalsIgnoreCase("-after"))
-				try {
-					after = format.parse(args[++i]);
-				} catch (ParseException e) {
-					System.err.println("Failed to parse -after argument: " + e.getMessage());
-				}
+				after = parseDate(args[++i]);
 			else if (args[i].equalsIgnoreCase("-before"))
-				try {
-					before = format.parse(args[++i]);
-				} catch (ParseException e) {
-					System.err.println("Failed to parse -before argument: " + e.getMessage());
-				}
+				before = parseDate(args[++i]);
 			else if (args[i].equalsIgnoreCase("-older"))
 				try {
 					int days = Integer.parseInt(args[++i]);
@@ -320,6 +311,21 @@ public class SearchClient extends AbstractMailClient {
 
 		for (int i = 0; i < HELP_TEXT.length; i++)
 			ps.println(HELP_TEXT[i]);
+	}
+
+	private static final SimpleDateFormat formatDateAndTime = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+	private static final SimpleDateFormat formatDateOnly = new SimpleDateFormat("yyyy-MM-dd");
+
+	private static Date parseDate(String datestring) {
+		try {
+			return formatDateOnly.parse(datestring);
+		} catch (ParseException e) {
+			try {
+				return formatDateAndTime.parse(datestring);
+			} catch (ParseException e1) {
+				return null;
+			}
+		}
 	}
 
 	public SearchClient(String folderURI) throws MessagingException, URISyntaxException {
