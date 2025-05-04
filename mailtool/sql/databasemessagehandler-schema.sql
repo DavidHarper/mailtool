@@ -20,48 +20,58 @@
 -- See the COPYING file located in the top-level-directory of
 -- the archive of this library for complete text of license.
 
-DROP TABLE IF EXISTS recipient;
-DROP TABLE IF EXISTS attachment;
-DROP TABLE IF EXISTS message;
-DROP TABLE IF EXISTS folder;
+DROP TABLE IF EXISTS `recipient`;
+DROP TABLE IF EXISTS `attachment`;
+DROP TABLE IF EXISTS `message`;
+DROP TABLE IF EXISTS `folder`;
+DROP TABLE IF EXISTS `address`;
 
 CREATE TABLE `folder` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `message` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `folder_id` int(10) unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `folder_id` int unsigned NOT NULL,
   `from` varchar(255) NOT NULL,
-  `to` varchar(255) DEFAULT NULL,
+  `message_id` varchar(255) DEFAULT NULL,
   `sent_date` datetime DEFAULT NULL,
   `subject` varchar(255) DEFAULT NULL,
-  `size` int(10) unsigned NOT NULL DEFAULT '0',
+  `size` int unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `folder_id` (`folder_id`),
   CONSTRAINT `message_ibfk_1` FOREIGN KEY (`folder_id`) REFERENCES `folder` (`id`)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `attachment` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `message_id` int(10) unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `message_id` int unsigned NOT NULL,
   `mime_type` varchar(255) NOT NULL,
   `filename` varchar(255) DEFAULT NULL,
-  `size` int(10) unsigned NOT NULL,
+  `size` int unsigned NOT NULL,
   PRIMARY KEY (`id`),
   KEY `message_id` (`message_id`),
   CONSTRAINT `attachment_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `message` (`id`)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE `recipient` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `message_id` int(10) unsigned NOT NULL,
-  `type` enum('TO','CC','BCC') NOT NULL,
+CREATE TABLE `address` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
   `address` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `address` (`address`)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `recipient` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `message_id` int unsigned NOT NULL,
+  `type` enum('TO','CC','BCC') NOT NULL,
+  `address_id` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
   KEY `message_id` (`message_id`),
-  CONSTRAINT `recipient_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `message` (`id`)
+  KEY `address_id` (`address_id`),
+  CONSTRAINT `recipient_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `message` (`id`),
+  CONSTRAINT `recipient_ibfk_2` FOREIGN KEY (`address_id`) REFERENCES `address` (`id`)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

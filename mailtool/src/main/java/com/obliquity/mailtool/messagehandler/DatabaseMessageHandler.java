@@ -91,7 +91,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 		
 		pstmtPutNewAddress = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
-		sql = "insert into message(folder_id, `from`, sent_date, subject, `size`) values (?,?,?,?,?)";
+		sql = "insert into message(folder_id, `from`, message_id, sent_date, subject, `size`) values (?,?,?,?,?,?)";
 		
 		pstmtPutMessage = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
@@ -173,6 +173,18 @@ public class DatabaseMessageHandler implements MessageHandler {
 		}
 	}
 
+	private String getMessageID(Message message) throws MessagingException, IOException {
+		String msgid = (message instanceof MimeMessage) ? ((MimeMessage)message).getMessageID() : null;
+
+		if (msgid == null)
+			return null;
+
+		if (msgid.startsWith("<") && msgid.endsWith(">"))
+			msgid = msgid.substring(1, msgid.length()-1);
+
+		return msgid;
+	}
+
 	@Override
 	public void handleMessage(Message message) throws MessagingException, IOException {
 		if (debug)
@@ -192,6 +204,8 @@ public class DatabaseMessageHandler implements MessageHandler {
 			Address[] ccRecipients = message.getRecipients(RecipientType.CC);
 			
 			Address[] bccRecipients = message.getRecipients(RecipientType.BCC);
+
+			String msgid = getMessageID(message);
 			
 			Date sentDate = message.getSentDate();
 			
@@ -203,14 +217,19 @@ public class DatabaseMessageHandler implements MessageHandler {
 			
 			pstmtPutMessage.setString(2, from == null ? "NULL" : from.getAddress());
 
-			if (sentDate == null)
-				pstmtPutMessage.setNull(3, Types.TIMESTAMP);
+			if (msgid == null)
+				pstmtPutMessage.setNull(3, Types.VARCHAR);
 			else
-				pstmtPutMessage.setTimestamp(3, new Timestamp(sentDate.getTime()));
+				pstmtPutMessage.setString(3, msgid);
+
+			if (sentDate == null)
+				pstmtPutMessage.setNull(4, Types.TIMESTAMP);
+			else
+				pstmtPutMessage.setTimestamp(4, new Timestamp(sentDate.getTime()));
 				
-			pstmtPutMessage.setString(4, subject);
+			pstmtPutMessage.setString(5, subject);
 			
-			pstmtPutMessage.setInt(5, size);
+			pstmtPutMessage.setInt(6, size);
 			
 			int rows = pstmtPutMessage.executeUpdate();
 			
