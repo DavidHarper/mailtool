@@ -42,7 +42,8 @@ CREATE TABLE `message` (
   `subject` varchar(255) DEFAULT NULL,
   `size` int unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  KEY `folder_id` (`folder_id`),
+  KEY `sent_date_folder_id` (`sent_date`,`folder_id`),
+  KEY `folder_id_sent_date` (`folder_id`,`sent_date`),
   CONSTRAINT `message_ibfk_1` FOREIGN KEY (`folder_id`) REFERENCES `folder` (`id`)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
