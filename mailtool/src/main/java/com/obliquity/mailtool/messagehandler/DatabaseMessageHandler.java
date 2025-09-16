@@ -25,6 +25,8 @@
 package com.obliquity.mailtool.messagehandler;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -245,8 +247,18 @@ public class DatabaseMessageHandler implements MessageHandler {
 				rs.close();
 			}
 			
-			Object content = message.getContent();
+			Object content = null;
 			
+			try {
+				content = message.getContent();
+			} catch (UnsupportedEncodingException uex) {
+				InputStream is = message.getInputStream();
+
+				byte[] contentBytes = is.readAllBytes();
+
+				content = new String(contentBytes);
+			}
+
 			putRecipients(messageID, toRecipients, "TO");
 			
 			putRecipients(messageID, ccRecipients, "CC");
