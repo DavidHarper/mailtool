@@ -5,8 +5,6 @@ group = 'com.obliquity.mailtool'
 
 version = '1.0'
 
-sourceCompatibility = '16'
-
 jar {
     manifest {
         attributes "Main-Class": "com.obliquity.mailtool.ListFolders"
